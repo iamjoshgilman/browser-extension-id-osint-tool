@@ -29,11 +29,6 @@ Browser extensions have significant access to user data and browsing activity, y
 - **Rate Limiting**: Responsible scraping with configurable delays and limits
 - **Docker Deployment**: Containerized for easy hosting and scalability
 
-## 📸 Screenshots
-
-![OSINT Tool Interface](https://via.placeholder.com/800x400?text=Browser+Extension+OSINT+Tool)
-*Clean, dark-themed interface for efficient investigation*
-
 ## 🚀 Use Cases
 
 ### Security Operations
