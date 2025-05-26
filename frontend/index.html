@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browser Extension OSINT Tool</title>
+    <style>
+        /* Catppuccin Frappé color palette */
+        :root {
+            --ctp-base: #303446;
+            --ctp-mantle: #292c3c;
+            --ctp-crust: #232634;
+            --ctp-surface0: #414559;
+            --ctp-surface1: #51576d;
+            --ctp-surface2: #626880;
+            --ctp-overlay0: #737994;
+            --ctp-overlay1: #838ba7;
+            --ctp-overlay2: #949cbb;
+            --ctp-text: #c6d0f5;
+            --ctp-subtext1: #b5bfe2;
+            --ctp-subtext0: #a5adce;
+            --ctp-lavender: #babbf1;
+            --ctp-blue: #8caaee;
+            --ctp-sapphire: #85c1dc;
+            --ctp-sky: #99d1db;
+            --ctp-teal: #81c8be;
+            --ctp-green: #a6d189;
+            --ctp-yellow: #e5c890;
+            --ctp-peach: #ef9f76;
+            --ctp-maroon: #ea999c;
+            --ctp-red: #e78284;
+            --ctp-mauve: #ca9ee6;
+            --ctp-pink: #f4b8e4;
+            --ctp-flamingo: #eebebe;
+            --ctp-rosewater: #f2d5cf;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: var(--ctp-base);
+            color: var(--ctp-text);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            flex: 1;
+        }
+
+        header {
+            background-color: var(--ctp-mantle);
+            padding: 30px 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--ctp-lavender);
+            font-size: 2.5em;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .subtitle {
+            text-align: center;
+            color: var(--ctp-subtext1);
+            margin-top: 10px;
+            font-size: 1.1em;
+        }
+
+        .search-section {
+            background-color: var(--ctp-mantle);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            margin-bottom: 30px;
+        }
+
+        .search-mode {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 25px;
+            justify-content: center;
+        }
+
+        .mode-button {
+            padding: 10px 20px;
+            background-color: var(--ctp-surface0);
+            color: var(--ctp-text);
+            border: 2px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .mode-button:hover {
+            background-color: var(--ctp-surface1);
+        }
+
+        .mode-button.active {
+            background-color: var(--ctp-lavender);
+            color: var(--ctp-crust);
+            border-color: var(--ctp-lavender);
+        }
+
+        .search-input-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        input[type="text"], textarea {
+            flex: 1;
+            padding: 12px 16px;
+            background-color: var(--ctp-surface0);
+            color: var(--ctp-text);
+            border: 2px solid var(--ctp-surface1);
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            min-width: 300px;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+            font-family: 'Courier New', monospace;
+        }
+
+        input[type="text"]:focus, textarea:focus {
+            outline: none;
+            border-color: var(--ctp-lavender);
+            background-color: var(--ctp-surface1);
+        }
+
+        .store-selector {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .store-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--ctp-subtext1);
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .store-checkbox:hover {
+            color: var(--ctp-text);
+        }
+
+        .store-checkbox input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--ctp-lavender);
+        }
+
+        button {
+            padding: 12px 30px;
+            background-color: var(--ctp-lavender);
+            color: var(--ctp-crust);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: block;
+            margin: 0 auto;
+        }
+
+        button:hover:not(:disabled) {
+            background-color: var(--ctp-mauve);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--ctp-lavender);
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--ctp-surface1);
+            border-top-color: var(--ctp-lavender);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error {
+            background-color: var(--ctp-red);
+            color: var(--ctp-crust);
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .results {
+            background-color: var(--ctp-mantle);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .result-header-main {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--ctp-surface0);
+        }
+
+        .result-item {
+            background-color: var(--ctp-surface0);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .result-item:hover {
+            background-color: var(--ctp-surface1);
+            border-color: var(--ctp-lavender);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .result-name {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: var(--ctp-lavender);
+            margin-bottom: 5px;
+        }
+
+        .result-id {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: var(--ctp-subtext0);
+        }
+
+        .store-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .store-chrome {
+            background-color: var(--ctp-blue);
+            color: var(--ctp-crust);
+        }
+
+        .store-firefox {
+            background-color: var(--ctp-peach);
+            color: var(--ctp-crust);
+        }
+
+        .store-edge {
+            background-color: var(--ctp-green);
+            color: var(--ctp-crust);
+        }
+
+        .result-meta {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+            font-size: 0.95em;
+            color: var(--ctp-subtext1);
+        }
+
+        .result-meta span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .result-meta strong {
+            color: var(--ctp-text);
+        }
+
+        .publisher {
+            color: var(--ctp-mauve);
+        }
+
+        .result-description {
+            color: var(--ctp-subtext0);
+            line-height: 1.5;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid var(--ctp-surface1);
+        }
+
+        .cached-badge {
+            background-color: var(--ctp-yellow);
+            color: var(--ctp-crust);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .stats-info {
+            background-color: var(--ctp-surface0);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: center;
+            color: var(--ctp-subtext1);
+        }
+
+        footer {
+            background-color: var(--ctp-crust);
+            padding: 20px 0;
+            text-align: center;
+            color: var(--ctp-subtext0);
+            margin-top: 40px;
+        }
+
+        .view-store-link {
+            display: inline-block;
+            margin-top: 10px;
+            color: var(--ctp-sapphire);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .view-store-link:hover {
+            color: var(--ctp-sky);
+            text-decoration: underline;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .search-section {
+                padding: 20px;
+            }
+
+            .search-mode {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .mode-button {
+                width: 100%;
+            }
+
+            input[type="text"], textarea {
+                min-width: 100%;
+            }
+
+            .result-header {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .result-meta {
+                flex-direction: column;
+                gap: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>🔍 Browser Extension OSINT Tool</h1>
+            <p class="subtitle">Search and analyze browser extensions across Chrome, Firefox, and Edge stores</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="search-section">
+            <div class="search-mode">
+                <button class="mode-button active" data-mode="single">Single Search</button>
+                <button class="mode-button" data-mode="bulk">Bulk Search</button>
+            </div>
+
+            <div id="single-search" class="search-panel">
+                <div class="search-input-group">
+                    <input type="text" id="extension-id" placeholder="Enter extension ID (e.g., cjpalhdlnbpafiamejdnhcphjbkeiagm)">
+                </div>
+            </div>
+
+            <div id="bulk-search" class="search-panel" style="display: none;">
+                <div class="search-input-group">
+                    <textarea id="bulk-ids" placeholder="Enter multiple extension IDs (one per line)"></textarea>
+                </div>
+            </div>
+
+            <div class="store-selector">
+                <label class="store-checkbox">
+                    <input type="checkbox" value="chrome" checked>
+                    <span>Chrome Web Store</span>
+                </label>
+                <label class="store-checkbox">
+                    <input type="checkbox" value="firefox" checked>
+                    <span>Firefox Add-ons</span>
+                </label>
+                <label class="store-checkbox">
+                    <input type="checkbox" value="edge" checked>
+                    <span>Edge Add-ons</span>
+                </label>
+            </div>
+
+            <button id="search-btn">Search Extension</button>
+        </div>
+
+        <div id="results"></div>
+    </main>
+
+    <footer>
+        <p>Browser Extension OSINT Tool | Search responsibly</p>
+    </footer>
+
+    <script>
+        // Backend API configuration
+        const API_BASE_URL = '/api';
+        const API_KEY = ''; // Set this if API key is required
+
+        // DOM elements
+        const modeButtons = document.querySelectorAll('.mode-button');
+        const searchPanels = document.querySelectorAll('.search-panel');
+        const searchBtn = document.getElementById('search-btn');
+        const resultsDiv = document.getElementById('results');
+        const singleInput = document.getElementById('extension-id');
+        const bulkInput = document.getElementById('bulk-ids');
+        let currentMode = 'single';
+
+        // Mode switching
+        modeButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const mode = btn.dataset.mode;
+                currentMode = mode;
+                
+                // Update button states
+                modeButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                // Update panels
+                searchPanels.forEach(panel => panel.style.display = 'none');
+                document.getElementById(`${mode}-search`).style.display = 'block';
+                
+                // Update button text
+                searchBtn.textContent = mode === 'single' ? 'Search Extension' : 'Search Extensions';
+                
+                // Clear results
+                resultsDiv.innerHTML = '';
+            });
+        });
+
+        // Search functionality
+        searchBtn.addEventListener('click', async () => {
+            const selectedStores = Array.from(document.querySelectorAll('.store-checkbox input:checked'))
+                .map(cb => cb.value);
+            
+            if (selectedStores.length === 0) {
+                showError('Please select at least one store to search');
+                return;
+            }
+
+            if (currentMode === 'single') {
+                const extensionId = singleInput.value.trim();
+                if (!extensionId) {
+                    showError('Please enter an extension ID');
+                    return;
+                }
+                await searchSingle(extensionId, selectedStores);
+            } else {
+                const ids = bulkInput.value.trim().split('\n')
+                    .map(id => id.trim())
+                    .filter(id => id.length > 0);
+                
+                if (ids.length === 0) {
+                    showError('Please enter at least one extension ID');
+                    return;
+                }
+                await searchBulk(ids, selectedStores);
+            }
+        });
+
+        // Single search
+        async function searchSingle(extensionId, stores) {
+            searchBtn.disabled = true;
+            showLoading('Searching extension...');
+
+            try {
+                const { data, cached } = await fetchExtensionData(extensionId, stores);
+                displayResults(data, extensionId, cached);
+            } catch (error) {
+                showError(`Error fetching extension data: ${error.message}`);
+            } finally {
+                searchBtn.disabled = false;
+            }
+        }
+
+        // Bulk search
+        async function searchBulk(ids, stores) {
+            searchBtn.disabled = true;
+            showLoading(`Searching for ${ids.length} extensions...`);
+
+            try {
+                const headers = {
+                    'Content-Type': 'application/json',
+                };
+                
+                if (API_KEY) {
+                    headers['X-API-Key'] = API_KEY;
+                }
+
+                const response = await fetch(`${API_BASE_URL}/bulk-search`, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({
+                        extension_ids: ids,
+                        stores: stores
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const allResults = [];
+                
+                // Flatten results from the response
+                for (const [extId, extResults] of Object.entries(data.results)) {
+                    allResults.push(...extResults.filter(r => r.found));
+                }
+
+                displayBulkResults(allResults, ids.length);
+            } catch (error) {
+                showError(`Error during bulk search: ${error.message}`);
+            } finally {
+                searchBtn.disabled = false;
+            }
+        }
+
+        // Fetch extension data from backend
+        async function fetchExtensionData(extensionId, stores) {
+            try {
+                const headers = {
+                    'Content-Type': 'application/json',
+                };
+                
+                if (API_KEY) {
+                    headers['X-API-Key'] = API_KEY;
+                }
+
+                const response = await fetch(`${API_BASE_URL}/search`, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({
+                        extension_id: extensionId,
+                        stores: stores
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                return { data: data.results, cached: false };
+            } catch (error) {
+                console.error('Error fetching extension data:', error);
+                throw error;
+            }
+        }
+
+        // Display single search results
+        function displayResults(results, extensionId, cached = false) {
+            resultsDiv.innerHTML = '';
+            
+            if (!results || results.length === 0) {
+                showError('No results found. The extension may not exist in the selected stores.');
+                return;
+            }
+
+            // Filter to only show found extensions
+            const foundResults = results.filter(r => r.found !== false);
+            
+            if (foundResults.length === 0) {
+                showError('Extension not found in any of the selected stores.');
+                return;
+            }
+
+            const header = `
+                <div class="result-header-main">
+                    <h2>Extension: ${extensionId}</h2>
+                    ${cached ? '<span class="cached-badge">Cached Result</span>' : ''}
+                </div>
+            `;
+
+            const resultsHtml = foundResults.map(ext => `
+                <div class="result-item">
+                    <div class="result-header">
+                        <div>
+                            <div class="result-name">${escapeHtml(ext.name)}</div>
+                            <span class="store-badge store-${ext.store_source}">${ext.store_source}</span>
+                        </div>
+                        <div class="result-id">${ext.extension_id}</div>
+                    </div>
+                    <div class="result-meta">
+                        <span><strong>Publisher:</strong> <span class="publisher">${escapeHtml(ext.publisher || 'Unknown')}</span></span>
+                        <span><strong>Users:</strong> ${ext.user_count || 'N/A'}</span>
+                        <span><strong>Rating:</strong> ⭐ ${ext.rating || 'N/A'}</span>
+                        <span><strong>Version:</strong> ${ext.version || 'N/A'}</span>
+                    </div>
+                    <div class="result-description">${escapeHtml(ext.description || 'No description available')}</div>
+                    <a href="${ext.store_url}" target="_blank" class="view-store-link">View in Store →</a>
+                </div>
+            `).join('');
+
+            resultsDiv.innerHTML = `
+                <div class="results">
+                    ${header}
+                    ${resultsHtml}
+                </div>
+            `;
+        }
+
+        // Display bulk search results
+        function displayBulkResults(results, totalSearched) {
+            resultsDiv.innerHTML = '';
+            
+            if (!results || results.length === 0) {
+                showError('No extensions found in the selected stores.');
+                return;
+            }
+
+            // Group results by extension ID
+            const grouped = results.reduce((acc, ext) => {
+                if (!acc[ext.extension_id]) {
+                    acc[ext.extension_id] = [];
+                }
+                acc[ext.extension_id].push(ext);
+                return acc;
+            }, {});
+
+            const header = `
+                <div class="result-header-main">
+                    <h2>Bulk Search Results</h2>
+                    <span>${Object.keys(grouped).length} of ${totalSearched} extensions found</span>
+                </div>
+            `;
+
+            const resultsHtml = Object.entries(grouped).map(([extId, stores]) => {
+                const storesHtml = stores.map(ext => `
+                    <div class="result-item">
+                        <div class="result-header">
+                            <div>
+                                <div class="result-name">${escapeHtml(ext.name)}</div>
+                                <span class="store-badge store-${ext.store_source}">${ext.store_source}</span>
+                            </div>
+                            <div class="result-id">${ext.extension_id}</div>
+                        </div>
+                        <div class="result-meta">
+                            <span><strong>Publisher:</strong> <span class="publisher">${escapeHtml(ext.publisher || 'Unknown')}</span></span>
+                            <span><strong>Users:</strong> ${ext.user_count || 'N/A'}</span>
+                            <span><strong>Rating:</strong> ⭐ ${ext.rating || 'N/A'}</span>
+                        </div>
+                        <div class="result-description">${escapeHtml(ext.description || 'No description available')}</div>
+                    </div>
+                `).join('');
+                
+                return storesHtml;
+            }).join('');
+
+            resultsDiv.innerHTML = `
+                <div class="results">
+                    ${header}
+                    ${resultsHtml}
+                </div>
+            `;
+        }
+
+        // Helper functions
+        function showLoading(message) {
+            resultsDiv.innerHTML = `
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+
+        function showError(message) {
+            resultsDiv.innerHTML = `<div class="error">${message}</div>`;
+        }
+
+        function escapeHtml(unsafe) {
+            if (!unsafe) return '';
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Enter key support
+        singleInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && currentMode === 'single') {
+                searchBtn.click();
+            }
+        });
+    </script>
+</body>
+</html>

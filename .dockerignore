@@ -1,0 +1,66 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+*.egg-info/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Documentation
+README.md
+docs/
+
+# Tests
+tests/
+pytest.ini
+.coveragerc
+
+# Development
+.env
+.env.local
+*.log
+logs/
+
+# Database (will be created in container)
+*.db
+*.sqlite
+*.sqlite3
+data/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+
+# Scripts (not needed in container)
+scripts/
+Makefile
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+*.backup

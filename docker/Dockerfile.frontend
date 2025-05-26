@@ -1,0 +1,14 @@
+# Frontend Dockerfile
+FROM nginx:alpine
+
+# Copy nginx configuration
+COPY nginx/nginx.conf /etc/nginx/nginx.conf
+
+# Copy frontend files
+COPY frontend/ /usr/share/nginx/html/
+
+# Expose ports
+EXPOSE 80 443
+
+# Run nginx
+CMD ["nginx", "-g", "daemon off;"]

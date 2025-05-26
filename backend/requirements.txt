@@ -1,0 +1,41 @@
+# Core dependencies
+Flask==3.0.0
+Flask-CORS==4.0.0
+Flask-Limiter==3.5.0
+Flask-Caching==2.1.0
+
+# Web scraping
+requests==2.31.0
+beautifulsoup4==4.12.2
+lxml==4.9.3
+
+# Database
+# Using built-in sqlite3
+
+# Utilities
+python-dotenv==1.0.0
+python-dateutil==2.8.2
+
+# Production server
+gunicorn==21.2.0
+gevent==23.9.1
+
+# Monitoring and logging
+python-json-logger==2.0.7
+
+# Testing
+pytest==7.4.3
+pytest-cov==4.1.0
+pytest-mock==3.12.0
+responses==0.24.1
+
+# Development
+black==23.11.0
+flake8==6.1.0
+mypy==1.7.1
+
+# Optional: Redis support for distributed caching
+redis==5.0.1
+
+# Optional: APM and monitoring
+# sentry-sdk[flask]==1.38.0
