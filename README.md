@@ -93,5 +93,4 @@ This tool is provided for educational and research purposes. Users are responsib
 - Some information not getting captured such as ratings
 
 ---
-
-* Vibe Codded With Love 🖤 *
+_Vibe Codded With Love 🖤_
