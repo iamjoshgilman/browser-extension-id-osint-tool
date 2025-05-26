@@ -2,6 +2,8 @@
 
 A comprehensive web-based tool for investigating browser extensions across Chrome Web Store, Firefox Add-ons, and Microsoft Edge Add-ons. Search and analyze extensions to gather intelligence about publishers, user counts, permissions, and cross-platform availability.
 
+## Live To Use: [Browser Ext ID Tool](https://browsereidtool.iamjoshgilman.com/)
+
 ## 🎯 Purpose
 
 Browser extensions have significant access to user data and browsing activity, yet there's limited tooling for security researchers and IT administrators to investigate them efficiently. This tool was created to:
