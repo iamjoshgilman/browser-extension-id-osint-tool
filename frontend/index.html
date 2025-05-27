@@ -80,6 +80,72 @@
             font-size: 1.1em;
         }
 
+        .info-box {
+            background-color: var(--ctp-surface0);
+            border-left: 4px solid var(--ctp-sapphire);
+            border-radius: 6px;
+            color: var(--ctp-subtext1);
+            margin-bottom: 20px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .info-box.collapsed .info-content {
+            max-height: 0;
+            padding: 0 20px;
+            opacity: 0;
+        }
+
+        .info-box .info-content {
+            max-height: 300px;
+            padding: 0 20px 15px 20px;
+            opacity: 1;
+            transition: all 0.3s ease;
+        }
+
+        .info-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .info-header:hover {
+            background-color: var(--ctp-surface1);
+        }
+
+        .info-header h3 {
+            color: var(--ctp-sapphire);
+            margin: 0;
+            font-size: 1.1em;
+        }
+
+        .toggle-icon {
+            color: var(--ctp-sapphire);
+            transition: transform 0.3s ease;
+            font-size: 0.9em;
+        }
+
+        .info-box.collapsed .toggle-icon {
+            transform: rotate(-90deg);
+        }
+
+        .info-content p {
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+
+        .info-content code {
+            background-color: var(--ctp-mantle);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: var(--ctp-pink);
+            font-size: 0.9em;
+        }
+
         .search-section {
             background-color: var(--ctp-mantle);
             padding: 30px;
@@ -145,6 +211,14 @@
             outline: none;
             border-color: var(--ctp-lavender);
             background-color: var(--ctp-surface1);
+        }
+
+        .input-help {
+            color: var(--ctp-overlay0);
+            font-size: 0.85em;
+            margin-top: -10px;
+            margin-bottom: 15px;
+            opacity: 0.8;
         }
 
         .store-selector {
@@ -345,6 +419,8 @@
             border-radius: 20px;
             font-size: 0.85em;
             font-weight: 600;
+            margin-left: 8px;
+            display: inline-block;
         }
 
         .stats-info {
@@ -426,6 +502,19 @@
     </header>
 
     <main class="container">
+        <div class="info-box collapsed">
+            <div class="info-header" onclick="toggleInfo()">
+                <h3>ℹ️ How to use this tool</h3>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="info-content">
+                <p>This tool searches for browser extensions using their unique <strong>Extension IDs</strong>.</p>
+                <p><strong>Chrome:</strong> 32 lowercase letters (e.g., <code>cjpalhdlnbpafiamejdnhcphjbkeiagm</code>)</p>
+                <p><strong>Firefox:</strong> Various formats like <code>uBlock0@raymondhill.net</code> or <code>{uuid}</code></p>
+                <p><strong>Edge:</strong> 32 alphanumeric characters (e.g., <code>odfafepnkmbhccpbejgmiehpchacaeak</code>)</p>
+            </div>
+        </div>
+
         <div class="search-section">
             <div class="search-mode">
                 <button class="mode-button active" data-mode="single">Single Search</button>
@@ -434,14 +523,21 @@
 
             <div id="single-search" class="search-panel">
                 <div class="search-input-group">
-                    <input type="text" id="extension-id" placeholder="Enter extension ID (e.g., cjpalhdlnbpafiamejdnhcphjbkeiagm)">
+                    <input type="text" id="extension-id" placeholder="Enter extension ID">
                 </div>
+                <p class="input-help">Tip: Use the extension's ID, not its name</p>
             </div>
 
             <div id="bulk-search" class="search-panel" style="display: none;">
                 <div class="search-input-group">
-                    <textarea id="bulk-ids" placeholder="Enter multiple extension IDs (one per line)"></textarea>
+                    <textarea id="bulk-ids" placeholder="Enter extension IDs, one per line
+
+Example:
+cjpalhdlnbpafiamejdnhcphjbkeiagm
+uBlock0@raymondhill.net
+odfafepnkmbhccpbejgmiehpchacaeak"></textarea>
                 </div>
+                <p class="input-help">Tip: Enter one extension ID per line</p>
             </div>
 
             <div class="store-selector">
@@ -470,6 +566,12 @@
     </footer>
 
     <script>
+        // Toggle info box
+        function toggleInfo() {
+            const infoBox = document.querySelector('.info-box');
+            infoBox.classList.toggle('collapsed');
+        }
+
         // Backend API configuration
         const API_BASE_URL = '/api';
         const API_KEY = ''; // Set this if API key is required
@@ -521,6 +623,13 @@
                     showError('Please enter an extension ID');
                     return;
                 }
+                
+                // Basic validation
+                if (!extensionId || extensionId.trim() === '') {
+                    showError('Please enter an extension ID');
+                    return;
+                }
+                
                 await searchSingle(extensionId, selectedStores);
             } else {
                 const ids = bulkInput.value.trim().split('\n')
@@ -531,6 +640,7 @@
                     showError('Please enter at least one extension ID');
                     return;
                 }
+                
                 await searchBulk(ids, selectedStores);
             }
         });
@@ -541,8 +651,8 @@
             showLoading('Searching extension...');
 
             try {
-                const { data, cached } = await fetchExtensionData(extensionId, stores);
-                displayResults(data, extensionId, cached);
+                const results = await fetchExtensionData(extensionId, stores);
+                displayResults(results, extensionId);
             } catch (error) {
                 showError(`Error fetching extension data: ${error.message}`);
             } finally {
@@ -618,7 +728,8 @@
                 }
 
                 const data = await response.json();
-                return { data: data.results, cached: false };
+                console.log('API Response:', data); // Debug log
+                return data.results || [];
             } catch (error) {
                 console.error('Error fetching extension data:', error);
                 throw error;
@@ -626,7 +737,8 @@
         }
 
         // Display single search results
-        function displayResults(results, extensionId, cached = false) {
+        function displayResults(results, extensionId) {
+            console.log('Display Results - received:', results); // Debug log
             resultsDiv.innerHTML = '';
             
             if (!results || results.length === 0) {
@@ -638,23 +750,25 @@
             const foundResults = results.filter(r => r.found !== false);
             
             if (foundResults.length === 0) {
-                showError('Extension not found in any of the selected stores.');
+                showError(`Extension ID "${extensionId}" was not found in the selected stores. Double-check the ID or try searching in different stores.`);
                 return;
             }
 
             const header = `
                 <div class="result-header-main">
-                    <h2>Extension: ${extensionId}</h2>
-                    ${cached ? '<span class="cached-badge">Cached Result</span>' : ''}
+                    <h2>Extension ID: ${escapeHtml(extensionId)}</h2>
                 </div>
             `;
 
-            const resultsHtml = foundResults.map(ext => `
+            const resultsHtml = foundResults.map(ext => {
+                const cacheInfo = ext.cached ? '<span class="cached-badge">Cached</span>' : '';
+                return `
                 <div class="result-item">
                     <div class="result-header">
                         <div>
                             <div class="result-name">${escapeHtml(ext.name)}</div>
                             <span class="store-badge store-${ext.store_source}">${ext.store_source}</span>
+                            ${cacheInfo}
                         </div>
                         <div class="result-id">${ext.extension_id}</div>
                     </div>
@@ -667,7 +781,7 @@
                     <div class="result-description">${escapeHtml(ext.description || 'No description available')}</div>
                     <a href="${ext.store_url}" target="_blank" class="view-store-link">View in Store →</a>
                 </div>
-            `).join('');
+            `}).join('');
 
             resultsDiv.innerHTML = `
                 <div class="results">
@@ -682,7 +796,7 @@
             resultsDiv.innerHTML = '';
             
             if (!results || results.length === 0) {
-                showError('No extensions found in the selected stores.');
+                showError('No extensions found in the selected stores. Double-check the IDs and try again.');
                 return;
             }
 

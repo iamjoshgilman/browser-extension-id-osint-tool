@@ -117,19 +117,20 @@ def search_extension():
     results = []
     found_stores = []
     
-    for store in stores:
-        if store not in scrapers:
-            continue
-        
+    # Search all requested stores - let each scraper handle validation
+    stores_to_search = [s for s in stores if s in scrapers]
+    
+    for store in stores_to_search:
         # Check cache first
         cached_data = db_manager.get_from_cache(extension_id, store)
         
         if cached_data:
-            cached_data.cached = True
-            results.append(cached_data.to_dict())
+            # Only include if it was actually found
             if cached_data.found:
+                cached_data.cached = True
+                results.append(cached_data.to_dict())
                 found_stores.append(store)
-            logger.info(f"Cache hit for {extension_id} in {store}")
+            logger.info(f"Cache hit for {extension_id} in {store} (found: {cached_data.found})")
         else:
             # Scrape if not in cache
             try:
@@ -137,19 +138,16 @@ def search_extension():
                 extension_data = scraper.scrape(extension_id)
                 
                 if extension_data:
+                    # Save to cache regardless of found status
                     db_manager.save_to_cache(extension_data)
-                    results.append(extension_data.to_dict())
+                    # Only include in results if actually found
                     if extension_data.found:
+                        results.append(extension_data.to_dict())
                         found_stores.append(store)
-                    logger.info(f"Scraped {extension_id} from {store}")
+                    logger.info(f"Scraped {extension_id} from {store} (found: {extension_data.found})")
             except Exception as e:
                 logger.error(f"Error scraping {store} for {extension_id}: {e}")
-                results.append({
-                    'extension_id': extension_id,
-                    'store_source': store,
-                    'found': False,
-                    'error': str(e)
-                })
+                # Don't include error results in the response
     
     # Log the search
     db_manager.log_search(extension_id, found_stores, ip_address, user_agent)
@@ -187,16 +185,17 @@ def bulk_search_extensions():
         
         ext_results = []
         
-        for store in stores:
-            if store not in scrapers:
-                continue
-            
+        # Search all requested stores for this ID
+        stores_to_search = [s for s in stores if s in scrapers]
+        
+        for store in stores_to_search:
             # Check cache first
             cached_data = db_manager.get_from_cache(ext_id, store)
             
             if cached_data:
-                cached_data.cached = True
-                ext_results.append(cached_data.to_dict())
+                if cached_data.found:
+                    cached_data.cached = True
+                    ext_results.append(cached_data.to_dict())
             else:
                 # Scrape if not in cache
                 try:
@@ -205,7 +204,8 @@ def bulk_search_extensions():
                     
                     if extension_data:
                         db_manager.save_to_cache(extension_data)
-                        ext_results.append(extension_data.to_dict())
+                        if extension_data.found:
+                            ext_results.append(extension_data.to_dict())
                 except Exception as e:
                     logger.error(f"Error in bulk search for {ext_id} in {store}: {e}")
         

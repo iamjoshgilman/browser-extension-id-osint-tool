@@ -1,0 +1,57 @@
+.
+├── backend
+│   ├── app.py
+│   ├── config.py
+│   ├── database
+│   │   ├── __init__.py
+│   │   └── manager.py
+│   ├── __init__.py
+│   ├── middleware.py
+│   ├── models
+│   │   ├── extension.py
+│   │   └── __init__.py
+│   ├── requirements.txt
+│   ├── scrapers
+│   │   ├── base.py
+│   │   ├── chrome.py
+│   │   ├── edge.py
+│   │   ├── firefox.py
+│   │   └── __init__.py
+│   ├── start.sh
+│   ├── utils.py
+│   └── wsgi.py
+├── data
+│   └── extensions_cache.db
+├── docker
+│   ├── docker-compose.yml
+│   ├── Dockerfile.backend
+│   └── Dockerfile.frontend
+├── filestructure.txt
+├── frontend
+│   ├── css
+│   │   └── style.css
+│   ├── index.html
+│   └── js
+│       ├── api.js
+│       └── app.js
+├── LICENSE
+├── logs
+├── Makefile
+├── nginx
+│   ├── certs
+│   └── nginx.conf
+├── README.md
+├── scripts
+│   ├── clear_cache.py
+│   ├── create_favicon.py
+│   ├── debug_scraper.py
+│   ├── heathcheck.py
+│   ├── setup.sh
+│   └── test_scrapers.py
+└── tests
+    ├── __init__.py
+    ├── test_api.py
+    ├── test_database.py
+    └── test_scrapers.py
+
+15 directories, 40 files

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>API Debug Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #fff;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            cursor: pointer;
+        }
+        pre {
+            background: #2d2d2d;
+            padding: 15px;
+            border-radius: 5px;
+            overflow: auto;
+        }
+        .error {
+            color: #ff6b6b;
+        }
+        .success {
+            color: #51cf66;
+        }
+    </style>
+</head>
+<body>
+    <h1>API Debug Test</h1>
+    
+    <div>
+        <h2>Test 1: Health Check</h2>
+        <button onclick="testHealth()">Test Health Endpoint</button>
+        <pre id="health-result"></pre>
+    </div>
+    
+    <div>
+        <h2>Test 2: Search API</h2>
+        <input type="text" id="test-id" value="cjpalhdlnbpafiamejdnhcphjbkeiagm" style="width: 300px;">
+        <button onclick="testSearch()">Test Search</button>
+        <pre id="search-result"></pre>
+    </div>
+    
+    <div>
+        <h2>Test 3: Raw Fetch</h2>
+        <button onclick="testRawFetch()">Test Raw Fetch</button>
+        <pre id="raw-result"></pre>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+        
+        async function testHealth() {
+            const resultEl = document.getElementById('health-result');
+            try {
+                resultEl.textContent = 'Testing...';
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                resultEl.innerHTML = `<span class="success">Status: ${response.status}</span>\n${JSON.stringify(data, null, 2)}`;
+            } catch (error) {
+                resultEl.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+            }
+        }
+        
+        async function testSearch() {
+            const resultEl = document.getElementById('search-result');
+            const extensionId = document.getElementById('test-id').value;
+            
+            try {
+                resultEl.textContent = 'Testing...';
+                const response = await fetch(`${API_BASE}/search`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        extension_id: extensionId,
+                        stores: ['chrome', 'firefox', 'edge']
+                    })
+                });
+                
+                const data = await response.json();
+                resultEl.innerHTML = `<span class="success">Status: ${response.status}</span>\n${JSON.stringify(data, null, 2)}`;
+                
+                // Also log to console for inspection
+                console.log('Search Response:', data);
+            } catch (error) {
+                resultEl.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+            }
+        }
+        
+        async function testRawFetch() {
+            const resultEl = document.getElementById('raw-result');
+            try {
+                resultEl.textContent = 'Testing raw fetch...';
+                
+                // Test if backend is running
+                const testUrl = `${window.location.origin}${API_BASE}/health`;
+                resultEl.textContent += `\n\nTrying to fetch: ${testUrl}`;
+                
+                const response = await fetch(testUrl);
+                const text = await response.text();
+                
+                resultEl.innerHTML += `\n\n<span class="success">Raw response received</span>`;
+                resultEl.textContent += `\nStatus: ${response.status}`;
+                resultEl.textContent += `\nHeaders: ${JSON.stringify(Object.fromEntries(response.headers.entries()))}`;
+                resultEl.textContent += `\nBody: ${text}`;
+                
+            } catch (error) {
+                resultEl.innerHTML = `<span class="error">Fetch Error: ${error.message}</span>`;
+            }
+        }
+    </script>
+</body>
+</html>

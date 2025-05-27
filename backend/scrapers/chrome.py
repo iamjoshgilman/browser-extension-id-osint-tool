@@ -56,20 +56,22 @@ class ChromeStoreScraper(ExtensionScraper):
             response.raise_for_status()
             soup = BeautifulSoup(response.content, 'html.parser')
             
+            # Initialize with default values
             data = ExtensionData(
                 extension_id=normalized_id,
-                name="Unknown Extension",
+                name="",
                 store_source=self.store_name,
                 store_url=url
             )
             
             # Try to extract from structured data first
+            found_structured_data = False
             scripts = soup.find_all('script', type='application/ld+json')
             for script in scripts:
                 try:
                     json_data = json.loads(script.string)
                     if '@type' in json_data and json_data['@type'] == 'WebApplication':
-                        data.name = json_data.get('name', data.name)
+                        data.name = json_data.get('name', '')
                         if 'author' in json_data:
                             data.publisher = json_data['author'].get('name', '')
                         if 'description' in json_data:
@@ -80,12 +82,14 @@ class ChromeStoreScraper(ExtensionScraper):
                             rating_data = json_data['aggregateRating']
                             data.rating = str(rating_data.get('ratingValue', ''))
                             data.rating_count = str(rating_data.get('ratingCount', ''))
+                        found_structured_data = True
                         logger.info(f"Extracted data from structured data: {data.name}")
+                        break
                 except Exception as e:
                     logger.debug(f"Failed to parse structured data: {e}")
             
-            # Fallback to HTML parsing if structured data incomplete
-            if data.name == "Unknown Extension":
+            # If no structured data or no name found, try HTML parsing
+            if not data.name:
                 # Extract name - try multiple selectors
                 name_selectors = [
                     'h1[class*="webstore-test-wall-tile-name"]',
@@ -98,6 +102,28 @@ class ChromeStoreScraper(ExtensionScraper):
                     if elem and elem.get_text(strip=True):
                         data.name = elem.get_text(strip=True)
                         break
+            
+            # Check if this is actually an extension page or a 404/error page
+            # Chrome Web Store shows a page even for non-existent extensions but with generic content
+            if not data.name or data.name in ["Unknown Extension", "Chrome Web Store", ""]:
+                # Additional check: look for specific error indicators
+                error_indicators = [
+                    "Item not found",
+                    "This item may have been removed",
+                    "404",
+                    "Not found"
+                ]
+                
+                page_text = response.text.lower()
+                for indicator in error_indicators:
+                    if indicator.lower() in page_text:
+                        logger.info(f"Chrome extension not found (error indicator): {normalized_id}")
+                        return self.create_not_found_result(normalized_id)
+                
+                # If we still don't have a valid name, it's likely not found
+                if not data.name or data.name == "Unknown Extension":
+                    logger.info(f"Chrome extension not found (no valid data): {normalized_id}")
+                    return self.create_not_found_result(normalized_id)
             
             # Extract user count from text
             users_patterns = [
@@ -141,7 +167,7 @@ class ChromeStoreScraper(ExtensionScraper):
                     break
             
             # Extract description if not already found
-            if not data.description or data.description == "":
+            if not data.description:
                 desc_selectors = [
                     'div[itemprop="description"]',
                     'div.C-b-p-j-D-K',
@@ -168,8 +194,14 @@ class ChromeStoreScraper(ExtensionScraper):
                     data.last_updated = updated_match.group(1).strip()
                     break
             
-            logger.info(f"Successfully scraped Chrome extension: {data.name} (users: {data.user_count}, version: {data.version})")
-            return data
+            # Final validation - ensure we have meaningful data
+            if data.name and data.name not in ["Unknown Extension", "Chrome Web Store", ""]:
+                data.found = True
+                logger.info(f"Successfully scraped Chrome extension: {data.name} (users: {data.user_count}, version: {data.version})")
+                return data
+            else:
+                logger.info(f"Chrome extension not found (insufficient data): {normalized_id}")
+                return self.create_not_found_result(normalized_id)
             
         except Exception as e:
             return self.handle_request_error(normalized_id, e)
