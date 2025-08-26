@@ -9,6 +9,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backend'))
 from scrapers.chrome import ChromeStoreScraper
 from scrapers.firefox import FirefoxAddonsScraper
 from scrapers.edge import EdgeAddonsScraper
+from scrapers.safari import SafariExtensionsScraper
 import json
 
 # Test extension IDs
@@ -27,7 +28,12 @@ TEST_IDS = {
         'odfafepnkmbhccpbejgmiehpchacaeak',  # uBlock Origin (Edge)
         'ndcileolkflehcjpmjnfbnaibdcgglog',  # Bitwarden
         'INVALIDEDGEEXTENSION',               # Invalid ID
-    ]
+    ],
+    'safari': [
+        '1569813296',                         # 1Password for Safari
+        '1440147259',                         # AdGuard for Safari
+        'invalid',                            # Invalid ID
+    ],
 }
 
 def test_scraper(scraper_class, store_name, test_ids):
@@ -75,6 +81,9 @@ def main():
     
     # Test Edge scraper
     test_scraper(EdgeAddonsScraper, "Edge Add-ons", TEST_IDS['edge'])
+
+    # Test Safari scraper
+    test_scraper(SafariExtensionsScraper, "Safari Extensions", TEST_IDS['safari'])
     
     print("\n" + "="*60)
     print("Test complete!")
