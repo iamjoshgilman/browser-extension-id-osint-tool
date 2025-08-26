@@ -4,6 +4,7 @@ Database management for extension caching
 import sqlite3
 import json
 import logging
+import os
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict
 from contextlib import contextmanager
@@ -19,6 +20,15 @@ class DatabaseManager:
         config = get_config()
         self.db_path = db_path or config.DATABASE_PATH
         self.cache_expiry_days = config.DATABASE_CACHE_EXPIRY_DAYS
+        # Ensure the directory for the database exists. Without this SQLite
+        # will raise an OperationalError when attempting to open the database
+        # if the directory component of the path has not been created yet.
+        # This mirrors the behaviour of other parts of the application which
+        # expect the database file to be created on demand.
+        if self.db_path != ":memory:":
+            db_dir = os.path.dirname(self.db_path)
+            if db_dir:
+                os.makedirs(db_dir, exist_ok=True)
         self.init_database()
     
     @contextmanager
@@ -93,8 +103,10 @@ class DatabaseManager:
         with self.get_connection() as conn:
             cursor = conn.cursor()
             
-            # Calculate cache expiry
-            if self.cache_expiry_days > 0:
+            # Calculate cache expiry. A value of 0 means the cache should
+            # expire immediately while negative values disable expiry checks
+            # altogether.
+            if self.cache_expiry_days is not None and self.cache_expiry_days >= 0:
                 cache_expiry = datetime.now() - timedelta(days=self.cache_expiry_days)
                 expiry_clause = "AND scraped_at > ?"
                 params = (extension_id, store, cache_expiry.isoformat())

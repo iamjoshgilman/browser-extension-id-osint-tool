@@ -68,19 +68,19 @@ scrapers = {
 def require_api_key(f):
     """Decorator to require API key for protected endpoints"""
     def decorated_function(*args, **kwargs):
-        # Check the environment variable directly each time
-        api_key_required = os.environ.get('API_KEY_REQUIRED', 'False').lower() == 'true'
-        
+        # Use the application's config so tests can override this setting
+        api_key_required = app.config.get('API_KEY_REQUIRED', False)
+
         if not api_key_required:
             return f(*args, **kwargs)
-        
+
         api_key = request.headers.get('X-API-Key') or request.args.get('api_key')
-        
-        if not api_key or api_key != config.API_KEY:
+
+        if not api_key or api_key != app.config.get('API_KEY', ''):
             return jsonify({'error': 'Invalid or missing API key'}), 401
-        
+
         return f(*args, **kwargs)
-    
+
     # IMPORTANT: Set a unique name for the decorated function
     decorated_function.__name__ = f'api_key_{f.__name__}'
     return decorated_function
@@ -99,7 +99,10 @@ def health_check():
 @require_api_key
 def search_extension():
     """Search for a browser extension"""
-    data = request.get_json()
+    # Use silent mode so invalid or missing JSON results in None rather than a
+    # 415 Unsupported Media Type error. This allows us to consistently return
+    # a 400 response for bad requests.
+    data = request.get_json(silent=True)
     
     if not data:
         return jsonify({'error': 'Invalid JSON data'}), 400
@@ -162,7 +165,7 @@ def search_extension():
 @require_api_key
 def bulk_search_extensions():
     """Bulk search for multiple extensions"""
-    data = request.get_json()
+    data = request.get_json(silent=True)
     
     if not data:
         return jsonify({'error': 'Invalid JSON data'}), 400
@@ -229,7 +232,7 @@ def get_statistics():
 @require_api_key
 def cleanup_cache():
     """Clean up old cache entries"""
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     days = data.get('days', config.DATABASE_CACHE_EXPIRY_DAYS * 2)
     
     try:
