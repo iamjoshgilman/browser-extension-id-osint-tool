@@ -14,6 +14,7 @@ from database.manager import DatabaseManager
 from scrapers.chrome import ChromeStoreScraper
 from scrapers.firefox import FirefoxAddonsScraper
 from scrapers.edge import EdgeAddonsScraper
+from scrapers.safari import SafariExtensionsScraper
 from config import get_config
 
 # Configure logging
@@ -61,7 +62,8 @@ db_manager = DatabaseManager()
 scrapers = {
     'chrome': ChromeStoreScraper(),
     'firefox': FirefoxAddonsScraper(),
-    'edge': EdgeAddonsScraper()
+    'edge': EdgeAddonsScraper(),
+    'safari': SafariExtensionsScraper(),
 }
 
 # API key validation decorator
@@ -108,7 +110,7 @@ def search_extension():
         return jsonify({'error': 'Invalid JSON data'}), 400
     
     extension_id = data.get('extension_id', '').strip()
-    stores = data.get('stores', ['chrome', 'firefox', 'edge'])
+    stores = data.get('stores', ['chrome', 'firefox', 'edge', 'safari'])
     
     if not extension_id:
         return jsonify({'error': 'Extension ID is required'}), 400
@@ -171,7 +173,7 @@ def bulk_search_extensions():
         return jsonify({'error': 'Invalid JSON data'}), 400
     
     extension_ids = data.get('extension_ids', [])
-    stores = data.get('stores', ['chrome', 'firefox', 'edge'])
+    stores = data.get('stores', ['chrome', 'firefox', 'edge', 'safari'])
     
     if not extension_ids:
         return jsonify({'error': 'Extension IDs are required'}), 400

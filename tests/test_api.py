@@ -27,11 +27,26 @@ def test_health_check(client):
 
 def test_search_extension(client):
     """Test search endpoint"""
-    response = client.post('/api/search',
-                          json={
-                              'extension_id': 'cjpalhdlnbpafiamejdnhcphjbkeiagm',
-                              'stores': ['chrome']
-                          })
+    response = client.post(
+        '/api/search',
+        json={
+            'extension_id': 'cjpalhdlnbpafiamejdnhcphjbkeiagm',
+            'stores': ['chrome', 'safari']
+        }
+    )
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert 'extension_id' in data
+    assert 'results' in data
+    assert isinstance(data['results'], list)
+
+
+def test_search_extension_safari(client):
+    """Test search endpoint for Safari store"""
+    response = client.post(
+        '/api/search',
+        json={'extension_id': 'invalid', 'stores': ['safari']}
+    )
     assert response.status_code == 200
     data = json.loads(response.data)
     assert 'extension_id' in data
@@ -48,11 +63,24 @@ def test_search_invalid_request(client):
 
 def test_bulk_search(client):
     """Test bulk search endpoint"""
-    response = client.post('/api/bulk-search',
-                          json={
-                              'extension_ids': ['cjpalhdlnbpafiamejdnhcphjbkeiagm'],
-                              'stores': ['chrome']
-                          })
+    response = client.post(
+        '/api/bulk-search',
+        json={
+            'extension_ids': ['cjpalhdlnbpafiamejdnhcphjbkeiagm'],
+            'stores': ['chrome', 'safari']
+        }
+    )
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert 'results' in data
+
+
+def test_bulk_search_safari(client):
+    """Test bulk search with Safari store"""
+    response = client.post(
+        '/api/bulk-search',
+        json={'extension_ids': ['invalid'], 'stores': ['safari']}
+    )
     assert response.status_code == 200
     data = json.loads(response.data)
     assert 'results' in data
