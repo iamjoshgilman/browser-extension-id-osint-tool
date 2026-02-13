@@ -1,8 +1,8 @@
 .header {
   background-color: var(--bg-secondary);
   padding: 24px 0;
-  border-bottom: 1px solid var(--border-default);
   margin-bottom: 32px;
+  position: relative;
 }
 
 .container {
@@ -11,30 +11,79 @@
   padding: 0 20px;
 }
 
+.branding {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.logo {
+  flex-shrink: 0;
+}
+
+.titleGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .title {
-  text-align: center;
   color: var(--text-primary);
-  font-size: 2em;
+  font-size: 1.75em;
   font-weight: 700;
   letter-spacing: -0.02em;
-  margin-bottom: 4px;
+  line-height: 1.2;
+}
+
+.titleExtension {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.titleIntel {
+  color: var(--accent-primary);
+  font-weight: 700;
 }
 
 .subtitle {
-  text-align: center;
-  color: var(--text-secondary);
-  margin-top: 4px;
-  font-size: 0.95em;
+  color: var(--text-tertiary);
+  font-size: 0.85em;
   font-weight: 500;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.accentLine {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    var(--accent-primary) 0%,
+    var(--accent-purple) 50%,
+    var(--accent-success) 100%
+  );
+  opacity: 0.8;
 }
 
 @media (max-width: 768px) {
   .title {
-    font-size: 1.5em;
+    font-size: 1.4em;
   }
 
   .subtitle {
-    font-size: 0.85em;
+    font-size: 0.75em;
+  }
+
+  .branding {
+    gap: 12px;
+  }
+
+  .logo {
+    width: 32px;
+    height: 32px;
   }
 }

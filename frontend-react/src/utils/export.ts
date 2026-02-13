@@ -2,10 +2,15 @@ import type { ExtensionData } from '../types/extension'
 import { getAggregateRisk, riskLabels } from './permissions'
 
 function escapeCsvField(value: string): string {
-  if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-    return `"${value.replace(/"/g, '""')}"`
+  let escaped = value
+  // Prevent CSV formula injection
+  if (/^[=+\-@\t\r]/.test(escaped)) {
+    escaped = "'" + escaped
   }
-  return value
+  if (escaped.includes(',') || escaped.includes('"') || escaped.includes('\n')) {
+    return `"${escaped.replace(/"/g, '""')}"`
+  }
+  return escaped
 }
 
 export function exportCsv(results: ExtensionData[], query: string): void {

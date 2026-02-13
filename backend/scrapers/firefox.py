@@ -4,6 +4,7 @@ Firefox Add-ons scraper
 import re
 import logging
 from typing import Optional
+from urllib.parse import quote
 from bs4 import BeautifulSoup
 from scrapers.base import ExtensionScraper
 from models.extension import ExtensionData
@@ -19,12 +20,24 @@ class FirefoxAddonsScraper(ExtensionScraper):
         self.store_name = "firefox"
 
     def validate_id(self, extension_id: str) -> bool:
-        """Firefox can use various formats:
-        - {UUID} format: {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}
-        - Email-like: something@somewhere
-        - Simple string ID
-        """
-        return len(extension_id) > 1
+        """Firefox add-on IDs: GUIDs, email-style, or slug strings"""
+        eid = extension_id.strip()
+        if len(eid) < 2 or len(eid) > 255:
+            return False
+        # GUID format: {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}
+        if re.match(
+            r"^\{[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\}$",
+            eid,
+            re.IGNORECASE,
+        ):
+            return True
+        # Email-like format (e.g., uBlock0@raymondhill.net)
+        if re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", eid):
+            return True
+        # Slug format (alphanumeric, hyphens, dots, underscores)
+        if re.match(r"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,254}$", eid):
+            return True
+        return False
 
     def normalize_id(self, extension_id: str) -> str:
         """Normalize extension ID"""
@@ -60,7 +73,7 @@ class FirefoxAddonsScraper(ExtensionScraper):
 
         normalized_id = self.normalize_id(extension_id)
 
-        api_url = f"https://addons.mozilla.org/api/v5/addons/addon/{normalized_id}/"
+        api_url = f"https://addons.mozilla.org/api/v5/addons/addon/{quote(normalized_id, safe='')}/"
 
         try:
             logger.info(f"Scraping Firefox addon via API: {normalized_id}")

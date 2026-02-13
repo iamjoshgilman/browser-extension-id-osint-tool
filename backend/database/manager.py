@@ -448,6 +448,17 @@ class DatabaseManager:
             logger.info(f"Cleaned up {deleted} old cache entries")
             return deleted
 
+    def cleanup_old_search_history(self, days: int = 30):
+        """Delete search history entries older than specified days."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cutoff = (datetime.now() - timedelta(days=days)).isoformat()
+            cursor.execute("DELETE FROM search_history WHERE search_timestamp < ?", (cutoff,))
+            deleted = cursor.rowcount
+            conn.commit()
+            logger.info(f"Cleaned up {deleted} old search history entries")
+            return deleted
+
     def save_snapshot_if_changed(self, extension_data: ExtensionData):
         """Save a snapshot if version, permissions, or name has changed"""
         with self.get_connection() as conn:

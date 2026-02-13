@@ -3,6 +3,7 @@ import { SearchModeToggle, type SearchMode } from './SearchModeToggle'
 import { SingleSearchInput } from './SingleSearchInput'
 import { BulkSearchInput } from './BulkSearchInput'
 import { StoreSelector } from './StoreSelector'
+import { isValidExtensionId } from '../../utils/validation'
 import styles from './SearchPanel.module.css'
 
 interface SearchPanelProps {
@@ -21,7 +22,7 @@ export function SearchPanel({ onSingleSearch, onBulkSearch, loading }: SearchPan
 
     if (mode === 'single') {
       const id = singleId.trim()
-      if (id) onSingleSearch(id, stores, true)
+      if (id && isValidExtensionId(id)) onSingleSearch(id, stores, true)
     } else {
       const ids = bulkIds
         .split('\n')

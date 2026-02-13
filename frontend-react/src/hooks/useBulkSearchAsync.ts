@@ -146,7 +146,19 @@ export function useBulkSearchAsync(): UseBulkSearchAsyncReturn {
           es.close()
           eventSourceRef.current = null
 
+          let pollAttempts = 0
+          const MAX_POLL_ATTEMPTS = 150 // 5 minutes at 2s intervals
+
           pollIntervalRef.current = setInterval(async () => {
+            pollAttempts++
+            if (pollAttempts > MAX_POLL_ATTEMPTS) {
+              clearInterval(pollIntervalRef.current!)
+              pollIntervalRef.current = null
+              setError('Bulk search timed out')
+              setLoading(false)
+              return
+            }
+
             try {
               const job = await getBulkJobStatus(currentJobId)
               setProgress({

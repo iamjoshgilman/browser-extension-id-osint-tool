@@ -13,11 +13,12 @@ interface EnrichmentLink {
 
 export function EnrichmentLinks({ extensionId, store }: EnrichmentLinksProps) {
   const links: EnrichmentLink[] = []
+  const encodedId = encodeURIComponent(extensionId)
 
   // VirusTotal - available for all stores
   links.push({
     label: 'VirusTotal',
-    url: `https://www.virustotal.com/gui/search/${extensionId}`,
+    url: `https://www.virustotal.com/gui/search/${encodedId}`,
     description: 'Security analysis',
   })
 
@@ -25,7 +26,7 @@ export function EnrichmentLinks({ extensionId, store }: EnrichmentLinksProps) {
   if (store === 'chrome') {
     links.push({
       label: 'Chrome-Stats',
-      url: `https://chrome-stats.com/d/${extensionId}`,
+      url: `https://chrome-stats.com/d/${encodedId}`,
       description: 'Statistics and history',
     })
   }
@@ -34,12 +35,12 @@ export function EnrichmentLinks({ extensionId, store }: EnrichmentLinksProps) {
   if (store === 'firefox') {
     links.push({
       label: 'Source Viewer',
-      url: `https://addons.mozilla.org/en-US/firefox/addon/${extensionId}/versions/`,
+      url: `https://addons.mozilla.org/en-US/firefox/addon/${encodedId}/versions/`,
       description: 'Extension versions and source code',
     })
     links.push({
       label: 'Reviews',
-      url: `https://addons.mozilla.org/en-US/firefox/addon/${extensionId}/reviews/`,
+      url: `https://addons.mozilla.org/en-US/firefox/addon/${encodedId}/reviews/`,
       description: 'User reviews and ratings',
     })
   }
@@ -48,7 +49,7 @@ export function EnrichmentLinks({ extensionId, store }: EnrichmentLinksProps) {
   if (store === 'safari') {
     links.push({
       label: 'App Store Page',
-      url: `https://apps.apple.com/app/id${extensionId}`,
+      url: `https://apps.apple.com/app/id${encodedId}`,
       description: 'View in the App Store',
     })
   }

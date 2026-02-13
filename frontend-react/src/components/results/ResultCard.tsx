@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { ExtensionData } from '../../types/extension'
 import { getAggregateRisk } from '../../utils/permissions'
+import { sanitizeUrl } from '../../utils/sanitizeUrl'
 import { useCrossStoreSearch } from '../../hooks/useCrossStoreSearch'
 import { useExtensionHistory } from '../../hooks/useExtensionHistory'
 import { StoreBadge } from './StoreBadge'
@@ -53,6 +54,7 @@ export function ResultCard({ extension }: ResultCardProps) {
   }
 
   const hasPermissions = extension.permissions && extension.permissions.length > 0
+  const safeStoreUrl = sanitizeUrl(extension.store_url)
 
   return (
     <div className={styles.card}>
@@ -84,9 +86,9 @@ export function ResultCard({ extension }: ResultCardProps) {
         <div className={styles.description}>{extension.description}</div>
       )}
 
-      {extension.store_url && (
+      {safeStoreUrl && (
         <a
-          href={extension.store_url}
+          href={safeStoreUrl}
           target="_blank"
           rel="noopener noreferrer"
           className={styles.storeLink}

@@ -43,6 +43,9 @@ class ChromeStoreScraper(ExtensionScraper):
 
     def _extract_crx_permissions(self, extension_id: str) -> List[str]:
         """Extract permissions from CRX file"""
+        MAX_CRX_SIZE = 50 * 1024 * 1024  # 50 MB
+        MAX_MANIFEST_SIZE = 1 * 1024 * 1024  # 1 MB
+
         crx_url = (
             f"https://clients2.google.com/service/update2/crx"
             f"?response=redirect&acceptformat=crx2,crx3"
@@ -51,13 +54,23 @@ class ChromeStoreScraper(ExtensionScraper):
 
         try:
             logger.info(f"Downloading CRX for {extension_id}")
-            response = self.session.get(crx_url, timeout=30)
+            response = self.session.get(crx_url, timeout=30, stream=True)
 
             if response.status_code != 200:
                 logger.warning(f"Failed to download CRX: status {response.status_code}")
                 return []
 
-            crx_data = response.content
+            content_length = int(response.headers.get("content-length", 0))
+            if content_length > MAX_CRX_SIZE:
+                logger.warning(f"CRX too large: {content_length} bytes")
+                return []
+
+            crx_data = b""
+            for chunk in response.iter_content(chunk_size=8192):
+                crx_data += chunk
+                if len(crx_data) > MAX_CRX_SIZE:
+                    logger.warning("CRX download exceeded size limit")
+                    return []
 
             # CRX3 format validation
             if len(crx_data) < 12:
@@ -86,6 +99,10 @@ class ChromeStoreScraper(ExtensionScraper):
                     logger.warning("manifest.json not found in CRX")
                     return []
 
+                info = zf.getinfo("manifest.json")
+                if info.file_size > MAX_MANIFEST_SIZE:
+                    logger.warning("manifest.json too large in CRX")
+                    return []
                 manifest_content = zf.read("manifest.json")
                 manifest = json.loads(manifest_content)
 
@@ -303,9 +320,7 @@ class ChromeStoreScraper(ExtensionScraper):
 
             # Extract languages if available
             if not data.languages:
-                lang_match = re.search(
-                    r"Languages?[:\s]*([^<\n]+)", response.text, re.IGNORECASE
-                )
+                lang_match = re.search(r"Languages?[:\s]*([^<\n]+)", response.text, re.IGNORECASE)
                 if lang_match:
                     data.languages = lang_match.group(1).strip()[:200]
 

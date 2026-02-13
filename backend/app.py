@@ -5,6 +5,10 @@ import os
 import logging
 import uuid
 import threading
+import hmac
+import functools
+import time
+import json
 from datetime import datetime
 from flask import Flask, jsonify, request, Response, stream_with_context
 from flask_cors import CORS
@@ -12,6 +16,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_caching import Cache
 from urllib.parse import quote as requests_quote
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Import components
 from database.manager import DatabaseManager
@@ -33,17 +38,17 @@ app = Flask(__name__)
 config = get_config()
 app.config.from_object(config)
 
-# Debug: Print config values
-logger.info(f"API_KEY_REQUIRED from env: {os.environ.get('API_KEY_REQUIRED')}")
-logger.info(f"API_KEY_REQUIRED in config: {config.API_KEY_REQUIRED}")
+# Apply ProxyFix for proper client IP detection behind reverse proxy
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
+# Sanitized config logging
+logger.info(f"API key authentication: {'enabled' if config.API_KEY_REQUIRED else 'disabled'}")
 
 # Initialize CORS
 CORS(app, origins=config.CORS_ORIGINS)
 
 # Initialize rate limiter with Redis storage if available
 if config.REDIS_URL:
-    from flask_limiter.storage import RedisStorage
-
     limiter = Limiter(
         app=app,
         key_func=get_remote_address,
@@ -51,7 +56,11 @@ if config.REDIS_URL:
         default_limits=["100 per hour"],
     )
 else:
-    limiter = Limiter(app=app, key_func=get_remote_address, default_limits=["100 per hour"])
+    limiter = Limiter(
+        app=app,
+        key_func=get_remote_address,
+        default_limits=["100 per hour"]
+    )
 
 # Initialize cache
 cache = Cache(app, config={"CACHE_TYPE": "simple"})
@@ -77,12 +86,25 @@ SCRAPER_CLASSES = {
 
 # Active bulk jobs
 active_jobs = {}  # job_id -> BulkSearchExecutor
+MAX_ACTIVE_JOBS = 100
+
+
+def cleanup_completed_jobs():
+    """Remove completed jobs from active_jobs to prevent memory exhaustion."""
+    completed = []
+    for jid in list(active_jobs.keys()):
+        job = db_manager.get_bulk_job(jid)
+        if job and job["status"] in ["completed", "failed", "cancelled"]:
+            completed.append(jid)
+    for jid in completed:
+        del active_jobs[jid]
 
 
 # API key validation decorator
 def require_api_key(f):
     """Decorator to require API key for protected endpoints"""
 
+    @functools.wraps(f)
     def decorated_function(*args, **kwargs):
         # Check app.config first for testability, then fall back to env var
         api_key_required = app.config.get("API_KEY_REQUIRED", False)
@@ -95,16 +117,16 @@ def require_api_key(f):
         if not api_key_required:
             return f(*args, **kwargs)
 
-        api_key = request.headers.get("X-API-Key") or request.args.get("api_key")
+        # Only accept API key via header (not query parameter)
+        api_key = request.headers.get("X-API-Key")
 
-        # Use app.config instead of module-level config for testability
-        if not api_key or api_key != app.config.get("API_KEY", config.API_KEY):
+        # Use timing-safe comparison to prevent timing attacks
+        expected_key = app.config.get("API_KEY", config.API_KEY)
+        if not api_key or not hmac.compare_digest(api_key, expected_key):
             return jsonify({"error": "Invalid or missing API key"}), 401
 
         return f(*args, **kwargs)
 
-    # IMPORTANT: Set a unique name for the decorated function
-    decorated_function.__name__ = f"api_key_{f.__name__}"
     return decorated_function
 
 
@@ -136,6 +158,9 @@ def search_extension():
 
     if not extension_id:
         return jsonify({"error": "Extension ID is required"}), 400
+
+    if len(extension_id) > 256:
+        return jsonify({"error": "Extension ID too long"}), 400
 
     # Log the search
     ip_address = request.remote_addr
@@ -225,8 +250,22 @@ def bulk_search_extensions():
     stores = data.get("stores", ["chrome", "firefox", "edge"])
     include_permissions = data.get("include_permissions", False)
 
+    # Validate extension_ids is an array
+    if not isinstance(extension_ids, list):
+        return jsonify({"error": "extension_ids must be an array"}), 400
+
+    # Strip and filter extension IDs
+    extension_ids = [
+        str(eid).strip()
+        for eid in extension_ids
+        if isinstance(eid, str) and len(str(eid).strip()) > 0
+    ]
+
     if not extension_ids:
         return jsonify({"error": "Extension IDs are required"}), 400
+
+    if any(len(eid) > 256 for eid in extension_ids):
+        return jsonify({"error": "Extension ID too long (max 256 chars)"}), 400
 
     if len(extension_ids) > 50:
         return jsonify({"error": "Maximum 50 extensions per bulk search"}), 400
@@ -308,10 +347,20 @@ def search_by_name():
 
     name = data.get("name", "").strip()
     exclude_stores = data.get("exclude_stores", [])
-    limit = min(int(data.get("limit", 5)), 10)
+
+    # Validate and parse limit with error handling
+    try:
+        limit = min(int(data.get("limit", 5)), 10)
+        if limit < 1:
+            limit = 1
+    except (TypeError, ValueError):
+        limit = 5
 
     if not name:
         return jsonify({"error": "Extension name is required"}), 400
+
+    if len(name) > 200:
+        return jsonify({"error": "Search name too long (max 200 characters)"}), 400
 
     results = {}
     search_urls = {}
@@ -371,9 +420,27 @@ def cleanup_cache():
     data = request.get_json() or {}
     days = data.get("days", config.DATABASE_CACHE_EXPIRY_DAYS * 2)
 
+    # Validate days parameter
+    try:
+        days = int(days)
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid 'days' parameter"}), 400
+
+    if days < 1 or days > 365:
+        return jsonify({"error": "'days' must be between 1 and 365"}), 400
+
     try:
         deleted = db_manager.cleanup_old_cache(days)
-        return jsonify({"message": f"Cleaned up {deleted} old cache entries", "deleted": deleted})
+        history_deleted = db_manager.cleanup_old_search_history(days)
+        message = (
+            f"Cleaned up {deleted} old cache entries and "
+            f"{history_deleted} search history entries"
+        )
+        return jsonify({
+            "message": message,
+            "cache_deleted": deleted,
+            "history_deleted": history_deleted
+        })
     except Exception as e:
         logger.error(f"Error cleaning cache: {e}")
         return jsonify({"error": "Failed to clean cache"}), 500
@@ -426,17 +493,20 @@ def get_extension_history(extension_id):
                 added = sorted(list(curr_permissions_set - prev_permissions_set))
                 removed = sorted(list(prev_permissions_set - curr_permissions_set))
 
+                version_changed = snapshot["version"] != prev_snapshot["version"]
+                name_changed = snapshot["name"] != prev_snapshot["name"]
+
                 enhanced_snapshot["diff"] = {
                     "added": added,
                     "removed": removed,
-                    "version_changed": snapshot["version"] != prev_snapshot["version"],
-                    "previous_version": prev_snapshot["version"]
-                    if snapshot["version"] != prev_snapshot["version"]
-                    else None,
-                    "name_changed": snapshot["name"] != prev_snapshot["name"],
-                    "previous_name": prev_snapshot["name"]
-                    if snapshot["name"] != prev_snapshot["name"]
-                    else None,
+                    "version_changed": version_changed,
+                    "previous_version": (
+                        prev_snapshot["version"] if version_changed else None
+                    ),
+                    "name_changed": name_changed,
+                    "previous_name": (
+                        prev_snapshot["name"] if name_changed else None
+                    ),
                 }
 
             enhanced_snapshots.append(enhanced_snapshot)
@@ -476,8 +546,22 @@ def bulk_search_async():
     stores = data.get("stores", ["chrome", "firefox", "edge"])
     include_permissions = data.get("include_permissions", False)
 
+    # Validate extension_ids is an array
+    if not isinstance(extension_ids, list):
+        return jsonify({"error": "extension_ids must be an array"}), 400
+
+    # Strip and filter extension IDs
+    extension_ids = [
+        str(eid).strip()
+        for eid in extension_ids
+        if isinstance(eid, str) and len(str(eid).strip()) > 0
+    ]
+
     if not extension_ids:
         return jsonify({"error": "Extension IDs are required"}), 400
+
+    if any(len(eid) > 256 for eid in extension_ids):
+        return jsonify({"error": "Extension ID too long (max 256 chars)"}), 400
 
     if len(extension_ids) > 50:
         return jsonify({"error": "Maximum 50 extensions per bulk search"}), 400
@@ -486,6 +570,11 @@ def bulk_search_async():
     valid_stores = [s for s in stores if s in SCRAPER_CLASSES]
     if not valid_stores:
         return jsonify({"error": "No valid stores specified"}), 400
+
+    # Clean up completed jobs and check capacity
+    cleanup_completed_jobs()
+    if len(active_jobs) >= MAX_ACTIVE_JOBS:
+        return jsonify({"error": "Too many active jobs. Try again later."}), 429
 
     # Generate job ID
     job_id = str(uuid.uuid4())
@@ -535,10 +624,6 @@ def bulk_search_async():
         ),
         202,
     )
-
-
-# Set unique name for decorated function
-bulk_search_async.__name__ = "api_key_bulk_search_async"
 
 
 @app.route("/api/bulk-search-async/<job_id>", methods=["GET"])
@@ -598,25 +683,33 @@ def stream_bulk_job(job_id):
 
     def generate():
         """Generate SSE events from result queue"""
+        start_time = time.time()
+        MAX_STREAM_SECONDS = 600  # 10 minutes
+
         try:
             while True:
+                # Check for stream timeout
+                if time.time() - start_time > MAX_STREAM_SECONDS:
+                    yield f"data: {json.dumps({'type': 'error', 'message': 'Stream timeout'})}\n\n"
+                    break
+
                 try:
                     # Wait for events with timeout
                     event = executor.result_queue.get(timeout=1)
 
                     if event["type"] == "progress":
                         # Progress event
-                        yield f"event: progress\n"
+                        yield "event: progress\n"
                         yield f"data: {jsonify(event).get_data(as_text=True)}\n\n"
 
                     elif event["type"] == "error":
                         # Error event
-                        yield f"event: error\n"
+                        yield "event: error\n"
                         yield f"data: {jsonify(event).get_data(as_text=True)}\n\n"
 
                     elif event["type"] == "complete":
                         # Completion event
-                        yield f"event: complete\n"
+                        yield "event: complete\n"
                         yield f"data: {jsonify(event).get_data(as_text=True)}\n\n"
                         break
 
@@ -629,7 +722,7 @@ def stream_bulk_job(job_id):
                         "cancelled",
                     ]:
                         # Job finished
-                        yield f"event: complete\n"
+                        yield "event: complete\n"
                         status_json = jsonify({"status": current_job["status"]})
                         yield f"data: {status_json.get_data(as_text=True)}\n\n"
                         break
@@ -689,13 +782,13 @@ def not_found(error):
 @app.errorhandler(429)
 def rate_limit_exceeded(error):
     """Handle rate limit errors"""
-    return jsonify({"error": "Rate limit exceeded", "message": str(error)}), 429
+    return jsonify({"error": "Rate limit exceeded. Please try again later."}), 429
 
 
 @app.errorhandler(500)
 def internal_error(error):
     """Handle 500 errors"""
-    logger.error(f"Internal server error: {error}")
+    logger.error("Internal server error: %s", error)
     return jsonify({"error": "Internal server error"}), 500
 
 

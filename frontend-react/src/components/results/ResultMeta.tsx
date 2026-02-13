@@ -1,5 +1,6 @@
 import type { ExtensionData } from '../../types/extension'
 import { formatUserCount, formatRating } from '../../utils/formatters'
+import { sanitizeUrl } from '../../utils/sanitizeUrl'
 import styles from './ResultMeta.module.css'
 
 interface ResultMetaProps {
@@ -18,12 +19,13 @@ export function ResultMeta({ extension }: ResultMetaProps) {
 
   // Publisher / Developer
   const publisherDisplay = extension.publisher || 'Unknown'
-  if (extension.developer_website) {
+  const safeDeveloperWebsite = sanitizeUrl(extension.developer_website)
+  if (safeDeveloperWebsite) {
     items.push({
       label: 'Publisher',
       value: publisherDisplay,
       isLink: true,
-      href: extension.developer_website,
+      href: safeDeveloperWebsite,
     })
   } else {
     items.push({ label: 'Publisher', value: publisherDisplay })
@@ -84,22 +86,24 @@ export function ResultMeta({ extension }: ResultMetaProps) {
   }
 
   // Support URL
-  if (extension.support_url) {
+  const safeSupportUrl = sanitizeUrl(extension.support_url)
+  if (safeSupportUrl) {
     items.push({
       label: 'Support',
       value: 'Support Page',
       isLink: true,
-      href: extension.support_url,
+      href: safeSupportUrl,
     })
   }
 
   // Privacy policy
-  if (extension.privacy_policy_url) {
+  const safePrivacyPolicyUrl = sanitizeUrl(extension.privacy_policy_url)
+  if (safePrivacyPolicyUrl) {
     items.push({
       label: 'Privacy Policy',
       value: 'View Policy',
       isLink: true,
-      href: extension.privacy_policy_url,
+      href: safePrivacyPolicyUrl,
     })
   }
 

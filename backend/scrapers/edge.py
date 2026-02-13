@@ -5,6 +5,7 @@ import re
 import json
 import logging
 from typing import Optional
+from urllib.parse import quote
 from scrapers.base import ExtensionScraper
 from models.extension import ExtensionData
 
@@ -52,8 +53,9 @@ class EdgeAddonsScraper(ExtensionScraper):
         normalized_id = self.normalize_id(extension_id)
         logger.info(f"Scraping Edge addon: {normalized_id}")
 
+        encoded_id = quote(normalized_id, safe="")
         api_url = (
-            f"https://microsoftedge.microsoft.com/addons/getproductdetailsbycrxid/{normalized_id}"
+            f"https://microsoftedge.microsoft.com/addons/getproductdetailsbycrxid/{encoded_id}"
         )
 
         try:

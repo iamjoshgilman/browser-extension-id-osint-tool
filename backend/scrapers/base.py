@@ -68,15 +68,12 @@ class ExtensionScraper(ABC):
         return []
 
     def handle_request_error(self, extension_id: str, error: Exception) -> Optional[ExtensionData]:
-        """Handle request errors consistently"""
-        logger.error(f"Error scraping {self.store_name} extension {extension_id}: {error}")
-
-        # Return a basic result indicating an error occurred
+        """Handle request errors with sanitized output"""
+        logger.error(f"Error scraping {extension_id}: {type(error).__name__}: {error}")
         return ExtensionData(
             extension_id=extension_id,
-            name=f"Error: {type(error).__name__}",
+            name="Error",
+            description="An error occurred while fetching extension data.",
             store_source=self.store_name,
-            store_url=self.get_extension_url(extension_id),
             found=False,
-            description=str(error),
         )

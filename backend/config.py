@@ -2,7 +2,6 @@
 Configuration settings for the Extension OSINT Tool
 """
 import os
-from datetime import timedelta
 
 
 class Config:
@@ -15,6 +14,7 @@ class Config:
     # Flask
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
     DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
+    MAX_CONTENT_LENGTH = 1 * 1024 * 1024  # 1MB request body limit
 
     # Database
     DATABASE_PATH = os.environ.get("DATABASE_PATH", "data/extensions_cache.db")
@@ -31,7 +31,8 @@ class Config:
     SCRAPER_DELAY = float(os.environ.get("SCRAPER_DELAY", "1.0"))
     SCRAPER_USER_AGENT = os.environ.get(
         "SCRAPER_USER_AGENT",
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     )
 
     # CORS
@@ -71,6 +72,22 @@ class ProductionConfig(Config):
     @classmethod
     def init_app(cls, app):
         Config.init_app(app)
+
+        # Fail fast if production secrets are not changed from defaults
+        secret_key = app.config.get("SECRET_KEY", "")
+        admin_api_key = app.config.get("ADMIN_API_KEY", "")
+
+        if secret_key == "dev-secret-key-change-in-production":
+            raise ValueError(
+                "FATAL: SECRET_KEY is still the default value. "
+                "Set a secure SECRET_KEY environment variable before running in production."
+            )
+
+        if admin_api_key == "admin-dev-key-change-me":
+            raise ValueError(
+                "FATAL: ADMIN_API_KEY is still the default value. "
+                "Set a secure ADMIN_API_KEY environment variable before running in production."
+            )
 
         # Log to syslog in production (optional)
         import logging
