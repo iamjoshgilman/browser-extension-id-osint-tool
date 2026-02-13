@@ -50,9 +50,9 @@ describe('ResultCard', () => {
     expect(screen.getByText('Risk: critical')).toBeInTheDocument()
   })
 
-  it('shows permissions unavailable notice for Chrome', () => {
+  it('shows no permissions message for Chrome when permissions array is empty', () => {
     render(<ResultCard extension={chromeExtension} />)
-    expect(screen.getByText(/Permissions unavailable from Chrome Web Store/)).toBeInTheDocument()
+    expect(screen.getByText(/No permissions declared/)).toBeInTheDocument()
   })
 
   it('renders store link', () => {

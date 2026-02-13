@@ -5,21 +5,10 @@ import styles from './PermissionsList.module.css'
 
 interface PermissionsListProps {
   permissions: string[]
-  store: string
 }
 
-export function PermissionsList({ permissions, store }: PermissionsListProps) {
+export function PermissionsList({ permissions }: PermissionsListProps) {
   const [expanded, setExpanded] = useState(false)
-
-  if (store === 'chrome') {
-    return (
-      <div className={styles.unavailable}>
-        <span className={styles.icon}>!</span>
-        Permissions unavailable from Chrome Web Store.{' '}
-        {/* CRXcavator link removed - service discontinued */}
-      </div>
-    )
-  }
 
   if (!permissions || permissions.length === 0) {
     return (

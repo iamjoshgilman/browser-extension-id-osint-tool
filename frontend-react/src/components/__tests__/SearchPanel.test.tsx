@@ -43,7 +43,7 @@ describe('SearchPanel', () => {
     expect(defaultProps.onSingleSearch).toHaveBeenCalledWith(
       'testid123',
       ['chrome', 'firefox', 'edge', 'safari'],
-      false
+      true
     )
   })
 })

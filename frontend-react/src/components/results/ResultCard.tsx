@@ -78,10 +78,7 @@ export function ResultCard({ extension }: ResultCardProps) {
 
       <ResultMeta extension={extension} />
 
-      <PermissionsList
-        permissions={extension.permissions || []}
-        store={extension.store_source}
-      />
+      <PermissionsList permissions={extension.permissions || []} />
 
       {extension.description && (
         <div className={styles.description}>{extension.description}</div>

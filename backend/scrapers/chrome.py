@@ -312,8 +312,8 @@ class ChromeStoreScraper(ExtensionScraper):
             if data.name and data.name not in ["Chrome Web Store", ""]:
                 data.found = True
 
-                # Extract CRX permissions if requested
-                if include_permissions and not data.permissions:
+                # Always extract CRX permissions for Chrome
+                if not data.permissions:
                     data.permissions = self._extract_crx_permissions(normalized_id)
 
                 logger.info(
