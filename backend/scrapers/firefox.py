@@ -108,9 +108,12 @@ class FirefoxAddonsScraper(ExtensionScraper):
                     if 'firefox' in categories and categories['firefox']:
                         data.category = categories['firefox'][0]
                 
-                # Extract permissions
+                # Extract permissions from current_version.file.permissions
                 current_version = addon_data.get('current_version', {})
-                if current_version.get('permissions'):
+                file_data = current_version.get('file', {})
+                if isinstance(file_data, dict) and file_data.get('permissions'):
+                    data.permissions = file_data['permissions']
+                elif current_version.get('permissions'):
                     data.permissions = current_version['permissions']
                 
                 # Extract last updated
