@@ -39,9 +39,11 @@ class TestBlocklistParsers:
         assert result == ["ext1", "ext2", "ext3"]
 
     def test_parse_json_object_array(self):
-        content = json.dumps([{"id": "ext1"}, {"id": "ext2"}])
+        content = json.dumps([{"id": "ext1", "name": "Bad Ext"}, {"id": "ext2"}])
         result = self.manager._parse_json(content)
-        assert result == ["ext1", "ext2"]
+        assert len(result) == 2
+        assert result[0] == ("ext1", "Bad Ext")
+        assert result[1] == "ext2"
 
     def test_parse_json_invalid(self):
         content = '"not an array"'
@@ -51,14 +53,15 @@ class TestBlocklistParsers:
     def test_parse_markdown_chrome_ids(self):
         content = """
 # Malicious Extensions
-| Name | ID |
-|------|-----|
-| Bad Extension | abcdefghijklmnopqrstuvwxyzabcdef |
-| Another Bad | zyxwvutsrqponmlkjihgfedcbazyxwvu |
+| Extension ID | Name | Source | Insert Date |
+| ------------- | ---- | ------ | ----------- |
+| abcdefghijklmnopqrstuvwxyzabcdef | Bad Extension | source.com | 01/01/26 |
+| zyxwvutsrqponmlkjihgfedcbazyxwvu | Another Bad | source.com | 01/01/26 |
 """
         result = self.manager._parse_markdown(content)
-        assert "abcdefghijklmnopqrstuvwxyzabcdef" in result
-        assert "zyxwvutsrqponmlkjihgfedcbazyxwvu" in result
+        assert len(result) == 2
+        assert result[0] == ("abcdefghijklmnopqrstuvwxyzabcdef", "Bad Extension")
+        assert result[1] == ("zyxwvutsrqponmlkjihgfedcbazyxwvu", "Another Bad")
 
 
 class TestBlocklistCheck:

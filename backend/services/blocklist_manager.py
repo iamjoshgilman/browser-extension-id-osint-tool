@@ -15,15 +15,22 @@ BLOCKLIST_TTL = 24 * 60 * 60  # 24 hours
 
 BLOCKLIST_SOURCES = [
     {
-        "name": "ArtifactCollector",
+        "name": "GuardExt",
         "url": (
-            "https://raw.githubusercontent.com/nickthecook/"
-            "nickthecook.github.io/master/ArtifactCollector/ArtifactCollector/list.txt"
+            "https://raw.githubusercontent.com/halkichi0308/"
+            "GuardExt/main/data/malicious_ids.json"
         ),
-        "format": "text",
-        "info_url": (
-            "https://github.com/nickthecook/nickthecook.github.io" "/tree/master/ArtifactCollector"
+        "format": "json",
+        "info_url": "https://github.com/halkichi0308/GuardExt",
+    },
+    {
+        "name": "Malicious Extension Sentry",
+        "url": (
+            "https://raw.githubusercontent.com/toborrm9/"
+            "malicious_extension_sentry/main/Malicious-Extensions.md"
         ),
+        "format": "markdown",
+        "info_url": "https://github.com/toborrm9/malicious_extension_sentry",
     },
 ]
 
@@ -45,21 +52,26 @@ class BlocklistManager:
 
         for source in self._sources:
             try:
-                ids = self._fetch_source(source)
-                new_stats[source["name"]] = len(ids)
-                for ext_id in ids:
+                entries = self._fetch_source(source)
+                new_stats[source["name"]] = len(entries)
+                for entry in entries:
+                    if isinstance(entry, tuple):
+                        ext_id, ext_name = entry
+                    else:
+                        ext_id, ext_name = entry, None
                     ext_id_lower = ext_id.lower().strip()
                     if not ext_id_lower:
                         continue
                     if ext_id_lower not in new_blocklist:
                         new_blocklist[ext_id_lower] = []
-                    new_blocklist[ext_id_lower].append(
-                        {
-                            "source": source["name"],
-                            "url": source.get("info_url", source["url"]),
-                        }
-                    )
-                logger.info(f"Loaded {len(ids)} IDs from blocklist: {source['name']}")
+                    match = {
+                        "source": source["name"],
+                        "url": source.get("info_url", source["url"]),
+                    }
+                    if ext_name:
+                        match["name"] = ext_name
+                    new_blocklist[ext_id_lower].append(match)
+                logger.info(f"Loaded {len(entries)} IDs from blocklist: {source['name']}")
             except Exception as e:
                 logger.error(f"Failed to fetch blocklist {source['name']}: {e}")
                 new_stats[source["name"]] = 0
@@ -75,8 +87,8 @@ class BlocklistManager:
             f"{len(self._sources)} sources"
         )
 
-    def _fetch_source(self, source: dict) -> List[str]:
-        """Fetch and parse a single blocklist source."""
+    def _fetch_source(self, source: dict) -> list:
+        """Fetch and parse a single blocklist source. Returns list of IDs or (id, name) tuples."""
         response = requests.get(source["url"], timeout=30)
         response.raise_for_status()
         content = response.text
@@ -101,25 +113,32 @@ class BlocklistManager:
                     ids.append(ext_id)
         return ids
 
-    def _parse_json(self, content: str) -> List[str]:
+    def _parse_json(self, content: str) -> list:
         """Parse JSON format (array of strings or array of objects with 'id' key)."""
         import json
 
         data = json.loads(content)
         if not isinstance(data, list):
             return []
-        ids = []
+        results = []
         for item in data:
             if isinstance(item, str):
-                ids.append(item)
+                results.append(item)
             elif isinstance(item, dict) and "id" in item:
-                ids.append(str(item["id"]))
-        return ids
+                name = item.get("name")
+                results.append((str(item["id"]), name) if name else str(item["id"]))
+        return results
 
-    def _parse_markdown(self, content: str) -> List[str]:
-        """Parse markdown format, extracting Chrome extension IDs from content."""
-        # Match 32 lowercase letter Chrome extension IDs
-        return re.findall(r"\b([a-z]{32})\b", content)
+    def _parse_markdown(self, content: str) -> list:
+        """Parse markdown table format with | Extension ID | Name | columns."""
+        results = []
+        for line in content.splitlines():
+            match = re.match(r"\|\s*([a-z]{32})\s*\|\s*([^|]+)", line)
+            if match:
+                ext_id = match.group(1)
+                name = match.group(2).strip()
+                results.append((ext_id, name) if name else ext_id)
+        return results
 
     def check_extension(self, extension_id: str) -> List[dict]:
         """Check if an extension is on any blocklist."""
