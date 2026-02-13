@@ -8,6 +8,7 @@ import type {
   SearchByNameResponse,
   HealthResponse,
 } from '../types/api'
+import type { ExtensionHistoryResponse } from '../types/extension'
 
 export async function searchExtension(req: SearchRequest): Promise<SearchResponse> {
   return apiClient.request<SearchResponse>('/search', {
@@ -41,4 +42,13 @@ export async function searchByName(
 
 export async function healthCheck(): Promise<HealthResponse> {
   return apiClient.request<HealthResponse>('/health')
+}
+
+export async function getExtensionHistory(
+  extensionId: string,
+  store: string
+): Promise<ExtensionHistoryResponse> {
+  return apiClient.request<ExtensionHistoryResponse>(
+    `/extension/${encodeURIComponent(extensionId)}/history?store=${store}`
+  )
 }

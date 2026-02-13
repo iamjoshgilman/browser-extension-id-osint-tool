@@ -69,9 +69,14 @@
   text-decoration: underline;
 }
 
-.crossStoreBtn {
-  display: block;
+.actionButtons {
+  display: flex;
+  gap: 10px;
   margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.actionBtn {
   padding: 8px 16px;
   background-color: var(--ctp-surface1);
   color: var(--ctp-lavender);
@@ -83,14 +88,33 @@
   transition: all 0.2s ease;
 }
 
-.crossStoreBtn:hover {
+.actionBtn:hover {
   background-color: var(--ctp-surface2);
   border-color: var(--ctp-lavender);
   transform: translateY(-1px);
 }
 
-.crossStoreBtn:active {
+.actionBtn:active {
   transform: translateY(0);
+}
+
+.historyLoading,
+.historyError {
+  margin-top: 16px;
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-size: 0.95em;
+  text-align: center;
+}
+
+.historyLoading {
+  background-color: var(--ctp-surface1);
+  color: var(--ctp-subtext0);
+}
+
+.historyError {
+  background-color: var(--ctp-surface1);
+  color: var(--ctp-red);
 }
 
 @media (max-width: 768px) {

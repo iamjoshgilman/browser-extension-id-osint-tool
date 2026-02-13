@@ -281,6 +281,135 @@ class TestDatabaseManager(unittest.TestCase):
         previous_after = self.db_manager.get_previous_found_entry('delisted123', 'edge')
         self.assertIsNone(previous_after)
 
+    def test_save_snapshot_creates_first(self):
+        """Test that saving an extension creates the first snapshot"""
+        # Create and save extension data
+        test_data = ExtensionData(
+            extension_id='snap123',
+            name='Snapshot Test Extension',
+            store_source='chrome',
+            version='1.0.0',
+            permissions=['tabs', 'storage'],
+            found=True
+        )
+        self.db_manager.save_to_cache(test_data)
+
+        # Verify snapshot was created
+        history = self.db_manager.get_extension_history('snap123', 'chrome')
+        self.assertEqual(len(history), 1)
+        self.assertEqual(history[0]['version'], '1.0.0')
+        self.assertEqual(history[0]['name'], 'Snapshot Test Extension')
+        self.assertEqual(sorted(history[0]['permissions']), ['storage', 'tabs'])
+
+    def test_save_snapshot_no_change_no_dup(self):
+        """Test that saving same data twice doesn't create duplicate snapshots"""
+        # Create and save extension data
+        test_data = ExtensionData(
+            extension_id='nodup123',
+            name='No Duplicate Test',
+            store_source='firefox',
+            version='2.0.0',
+            permissions=['activeTab', 'cookies'],
+            found=True
+        )
+        self.db_manager.save_to_cache(test_data)
+
+        # Save the exact same data again
+        self.db_manager.save_to_cache(test_data)
+
+        # Verify still only 1 snapshot
+        history = self.db_manager.get_extension_history('nodup123', 'firefox')
+        self.assertEqual(len(history), 1)
+
+    def test_save_snapshot_version_change(self):
+        """Test that version changes create new snapshots"""
+        # Create and save first version
+        test_data_v1 = ExtensionData(
+            extension_id='version123',
+            name='Version Change Test',
+            store_source='edge',
+            version='1.0.0',
+            permissions=['tabs'],
+            found=True
+        )
+        self.db_manager.save_to_cache(test_data_v1)
+
+        # Update version and save again
+        test_data_v2 = ExtensionData(
+            extension_id='version123',
+            name='Version Change Test',
+            store_source='edge',
+            version='2.0.0',
+            permissions=['tabs'],
+            found=True
+        )
+        self.db_manager.save_to_cache(test_data_v2)
+
+        # Verify 2 snapshots exist
+        history = self.db_manager.get_extension_history('version123', 'edge')
+        self.assertEqual(len(history), 2)
+        self.assertEqual(history[0]['version'], '1.0.0')
+        self.assertEqual(history[1]['version'], '2.0.0')
+
+    def test_save_snapshot_permission_change(self):
+        """Test that permission changes create new snapshots"""
+        # Create and save first version with initial permissions
+        test_data_v1 = ExtensionData(
+            extension_id='perm123',
+            name='Permission Change Test',
+            store_source='chrome',
+            version='1.0.0',
+            permissions=['tabs', 'storage'],
+            found=True
+        )
+        self.db_manager.save_to_cache(test_data_v1)
+
+        # Update permissions and save again
+        test_data_v2 = ExtensionData(
+            extension_id='perm123',
+            name='Permission Change Test',
+            store_source='chrome',
+            version='1.0.0',
+            permissions=['tabs', 'storage', 'cookies'],
+            found=True
+        )
+        self.db_manager.save_to_cache(test_data_v2)
+
+        # Verify 2 snapshots exist
+        history = self.db_manager.get_extension_history('perm123', 'chrome')
+        self.assertEqual(len(history), 2)
+        self.assertEqual(sorted(history[0]['permissions']), ['storage', 'tabs'])
+        self.assertEqual(sorted(history[1]['permissions']), ['cookies', 'storage', 'tabs'])
+
+    def test_get_extension_history_order(self):
+        """Test that history is returned in chronological order"""
+        # Create and save multiple versions
+        for i in range(3):
+            test_data = ExtensionData(
+                extension_id='order123',
+                name=f'Version {i}',
+                store_source='firefox',
+                version=f'{i}.0.0',
+                permissions=['tabs'],
+                found=True
+            )
+            self.db_manager.save_to_cache(test_data)
+
+        # Get history
+        history = self.db_manager.get_extension_history('order123', 'firefox')
+
+        # Verify chronological order
+        self.assertEqual(len(history), 3)
+        self.assertEqual(history[0]['version'], '0.0.0')
+        self.assertEqual(history[1]['version'], '1.0.0')
+        self.assertEqual(history[2]['version'], '2.0.0')
+
+    def test_get_extension_history_empty(self):
+        """Test that unknown extension returns empty list"""
+        history = self.db_manager.get_extension_history('nonexistent', 'chrome')
+        self.assertEqual(history, [])
+        self.assertEqual(len(history), 0)
+
 
 if __name__ == '__main__':
     unittest.main()

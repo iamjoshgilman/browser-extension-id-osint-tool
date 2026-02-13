@@ -68,14 +68,14 @@ class DatabaseManager:
             # Create indexes
             cursor.execute(
                 """
-                CREATE INDEX IF NOT EXISTS idx_extension_store 
+                CREATE INDEX IF NOT EXISTS idx_extension_store
                 ON extension_cache(extension_id, store)
             """
             )
 
             cursor.execute(
                 """
-                CREATE INDEX IF NOT EXISTS idx_scraped_at 
+                CREATE INDEX IF NOT EXISTS idx_scraped_at
                 ON extension_cache(scraped_at)
             """
             )
@@ -91,6 +91,28 @@ class DatabaseManager:
                     ip_address VARCHAR(45),
                     user_agent TEXT
                 )
+            """
+            )
+
+            # Create extension snapshots table
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS extension_snapshots (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    extension_id VARCHAR(255) NOT NULL,
+                    store VARCHAR(50) NOT NULL,
+                    version VARCHAR(50),
+                    permissions TEXT,
+                    name VARCHAR(500),
+                    scraped_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """
+            )
+
+            cursor.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_snapshots_ext_store
+                ON extension_snapshots(extension_id, store)
             """
             )
 
@@ -129,7 +151,7 @@ class DatabaseManager:
                 if data.get("permissions"):
                     try:
                         data["permissions"] = json.loads(data["permissions"])
-                    except:
+                    except Exception:
                         data["permissions"] = []
                 else:
                     data["permissions"] = []
@@ -173,7 +195,7 @@ class DatabaseManager:
                     if data.get("permissions"):
                         try:
                             data["permissions"] = json.loads(data["permissions"])
-                        except:
+                        except Exception:
                             data["permissions"] = []
                     else:
                         data["permissions"] = []
@@ -201,7 +223,7 @@ class DatabaseManager:
                     """
                     INSERT OR REPLACE INTO extension_cache
                     (extension_id, store, name, publisher, description, version,
-                     user_count, category, rating, rating_count, last_updated, 
+                     user_count, category, rating, rating_count, last_updated,
                      store_url, icon_url, homepage_url, privacy_policy_url,
                      permissions, found, scraped_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -231,6 +253,11 @@ class DatabaseManager:
                 logger.info(
                     f"Saved to cache: {extension_data.name} ({extension_data.store_source})"
                 )
+
+                # Save snapshot if extension was found
+                if extension_data.found:
+                    self.save_snapshot_if_changed(extension_data)
+
             except Exception as e:
                 logger.error(f"Error saving to cache: {e}")
 
@@ -247,7 +274,7 @@ class DatabaseManager:
 
             cursor.execute(
                 """
-                INSERT INTO search_history 
+                INSERT INTO search_history
                 (extension_id, found_in_stores, ip_address, user_agent)
                 VALUES (?, ?, ?, ?)
             """,
@@ -269,8 +296,8 @@ class DatabaseManager:
             # By store
             cursor.execute(
                 """
-                SELECT store, COUNT(*) 
-                FROM extension_cache 
+                SELECT store, COUNT(*)
+                FROM extension_cache
                 GROUP BY store
             """
             )
@@ -284,7 +311,7 @@ class DatabaseManager:
             yesterday = (datetime.now() - timedelta(days=1)).isoformat()
             cursor.execute(
                 """
-                SELECT COUNT(*) FROM search_history 
+                SELECT COUNT(*) FROM search_history
                 WHERE search_timestamp > ?
             """,
                 (yesterday,),
@@ -295,10 +322,10 @@ class DatabaseManager:
             # Most searched extensions
             cursor.execute(
                 """
-                SELECT extension_id, COUNT(*) as count 
-                FROM search_history 
-                GROUP BY extension_id 
-                ORDER BY count DESC 
+                SELECT extension_id, COUNT(*) as count
+                FROM search_history
+                GROUP BY extension_id
+                ORDER BY count DESC
                 LIMIT 10
             """
             )
@@ -320,7 +347,7 @@ class DatabaseManager:
 
             cursor.execute(
                 """
-                DELETE FROM extension_cache 
+                DELETE FROM extension_cache
                 WHERE scraped_at < ?
             """,
                 (cutoff_date,),
@@ -331,3 +358,116 @@ class DatabaseManager:
 
             logger.info(f"Cleaned up {deleted} old cache entries")
             return deleted
+
+    def save_snapshot_if_changed(self, extension_data: ExtensionData):
+        """Save a snapshot if version, permissions, or name has changed"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+
+            # Get most recent snapshot for this extension
+            cursor.execute(
+                """
+                SELECT version, permissions, name
+                FROM extension_snapshots
+                WHERE extension_id = ? AND store = ?
+                ORDER BY scraped_at DESC
+                LIMIT 1
+            """,
+                (extension_data.extension_id, extension_data.store_source),
+            )
+
+            row = cursor.fetchone()
+
+            # Determine if we should save a new snapshot
+            should_save = False
+
+            if not row:
+                # No previous snapshot exists
+                should_save = True
+            else:
+                prev_version = row["version"]
+                prev_permissions_str = row["permissions"]
+                prev_name = row["name"]
+
+                # Parse previous permissions
+                try:
+                    prev_permissions = (
+                        json.loads(prev_permissions_str) if prev_permissions_str else []
+                    )
+                except Exception:
+                    prev_permissions = []
+
+                # Sort permissions for comparison
+                curr_permissions_sorted = sorted(extension_data.permissions or [])
+                prev_permissions_sorted = sorted(prev_permissions)
+
+                # Check if anything changed
+                if (
+                    extension_data.version != prev_version
+                    or curr_permissions_sorted != prev_permissions_sorted
+                    or extension_data.name != prev_name
+                ):
+                    should_save = True
+
+            # Save snapshot if needed
+            if should_save:
+                permissions_json = (
+                    json.dumps(extension_data.permissions) if extension_data.permissions else "[]"
+                )
+
+                cursor.execute(
+                    """
+                    INSERT INTO extension_snapshots
+                    (extension_id, store, version, permissions, name, scraped_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                    (
+                        extension_data.extension_id,
+                        extension_data.store_source,
+                        extension_data.version,
+                        permissions_json,
+                        extension_data.name,
+                        datetime.now().isoformat(),
+                    ),
+                )
+                conn.commit()
+                logger.info(
+                    f"Saved snapshot for {extension_data.extension_id} "
+                    f"({extension_data.store_source})"
+                )
+
+    def get_extension_history(self, extension_id: str, store: str) -> List[Dict]:
+        """Get historical snapshots for an extension"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+
+            cursor.execute(
+                """
+                SELECT version, permissions, name, scraped_at
+                FROM extension_snapshots
+                WHERE extension_id = ? AND store = ?
+                ORDER BY scraped_at ASC
+            """,
+                (extension_id, store),
+            )
+
+            rows = cursor.fetchall()
+
+            history = []
+            for row in rows:
+                # Parse permissions from JSON
+                try:
+                    permissions = json.loads(row["permissions"]) if row["permissions"] else []
+                except Exception:
+                    permissions = []
+
+                history.append(
+                    {
+                        "version": row["version"],
+                        "permissions": permissions,
+                        "name": row["name"],
+                        "scraped_at": row["scraped_at"],
+                    }
+                )
+
+            return history

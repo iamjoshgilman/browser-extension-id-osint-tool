@@ -353,6 +353,84 @@ def cleanup_cache():
         return jsonify({"error": "Failed to clean cache"}), 500
 
 
+@app.route("/api/extension/<extension_id>/history", methods=["GET"])
+@limiter.limit("30 per minute")
+@require_api_key
+def get_extension_history(extension_id):
+    """Get historical snapshots for an extension"""
+    # Get store query parameter
+    store = request.args.get("store", "").strip().lower()
+
+    # Validate store parameter
+    if not store:
+        return jsonify({"error": "Store parameter is required"}), 400
+
+    if store not in ["chrome", "firefox", "edge"]:
+        return jsonify({"error": "Invalid store. Must be one of: chrome, firefox, edge"}), 400
+
+    try:
+        # Get historical snapshots
+        snapshots = db_manager.get_extension_history(extension_id, store)
+
+        # Compute diffs between consecutive snapshots
+        enhanced_snapshots = []
+        for i, snapshot in enumerate(snapshots):
+            enhanced_snapshot = {
+                "version": snapshot["version"],
+                "name": snapshot["name"],
+                "permissions": snapshot["permissions"],
+                "scraped_at": snapshot["scraped_at"],
+            }
+
+            if i == 0:
+                # First snapshot has no diff
+                enhanced_snapshot["diff"] = None
+            else:
+                # Compare with previous snapshot
+                prev_snapshot = snapshots[i - 1]
+
+                prev_permissions_set = set(prev_snapshot["permissions"])
+                curr_permissions_set = set(snapshot["permissions"])
+
+                added = sorted(list(curr_permissions_set - prev_permissions_set))
+                removed = sorted(list(prev_permissions_set - curr_permissions_set))
+
+                enhanced_snapshot["diff"] = {
+                    "added": added,
+                    "removed": removed,
+                    "version_changed": snapshot["version"] != prev_snapshot["version"],
+                    "previous_version": prev_snapshot["version"]
+                    if snapshot["version"] != prev_snapshot["version"]
+                    else None,
+                    "name_changed": snapshot["name"] != prev_snapshot["name"],
+                    "previous_name": prev_snapshot["name"]
+                    if snapshot["name"] != prev_snapshot["name"]
+                    else None,
+                }
+
+            enhanced_snapshots.append(enhanced_snapshot)
+
+        # Determine if there are any permission changes
+        has_permission_changes = any(
+            snap["diff"] and (snap["diff"]["added"] or snap["diff"]["removed"])
+            for snap in enhanced_snapshots
+        )
+
+        return jsonify(
+            {
+                "extension_id": extension_id,
+                "store": store,
+                "snapshots": enhanced_snapshots,
+                "total_snapshots": len(enhanced_snapshots),
+                "has_permission_changes": has_permission_changes,
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"Error getting extension history: {e}")
+        return jsonify({"error": "Failed to retrieve extension history"}), 500
+
+
 @app.errorhandler(404)
 def not_found(error):
     """Handle 404 errors"""

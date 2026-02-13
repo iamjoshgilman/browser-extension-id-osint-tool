@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { ExtensionData } from '../../types/extension'
 import { getAggregateRisk } from '../../utils/permissions'
 import { useCrossStoreSearch } from '../../hooks/useCrossStoreSearch'
+import { useExtensionHistory } from '../../hooks/useExtensionHistory'
 import { StoreBadge } from './StoreBadge'
 import { CachedBadge } from './CachedBadge'
 import { PermissionBadge } from './PermissionBadge'
@@ -9,6 +10,8 @@ import { ResultMeta } from './ResultMeta'
 import { PermissionsList } from './PermissionsList'
 import { DelistedBanner } from './DelistedBanner'
 import { CrossStoreResults } from './CrossStoreResults'
+import { PermissionHistory } from './PermissionHistory'
+import { EnrichmentLinks } from './EnrichmentLinks'
 import styles from './ResultCard.module.css'
 
 interface ResultCardProps {
@@ -17,7 +20,9 @@ interface ResultCardProps {
 
 export function ResultCard({ extension }: ResultCardProps) {
   const [showCrossStore, setShowCrossStore] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
   const crossStore = useCrossStoreSearch()
+  const extensionHistory = useExtensionHistory()
 
   const aggregateRisk = extension.store_source !== 'chrome' && extension.permissions?.length > 0
     ? getAggregateRisk(extension.permissions)
@@ -34,6 +39,20 @@ export function ResultCard({ extension }: ResultCardProps) {
       }
     }
   }
+
+  const handleHistoryClick = async () => {
+    if (showHistory) {
+      setShowHistory(false)
+      extensionHistory.clearHistory()
+    } else {
+      setShowHistory(true)
+      if (!extensionHistory.history && !extensionHistory.loading) {
+        await extensionHistory.fetchHistory(extension.extension_id, extension.store_source)
+      }
+    }
+  }
+
+  const hasPermissions = extension.permissions && extension.permissions.length > 0
 
   return (
     <div className={styles.card}>
@@ -79,9 +98,22 @@ export function ResultCard({ extension }: ResultCardProps) {
         </a>
       )}
 
-      <button onClick={handleCrossStoreClick} className={styles.crossStoreBtn}>
-        {showCrossStore ? 'Hide' : 'Find in other stores'}
-      </button>
+      <EnrichmentLinks
+        extensionId={extension.extension_id}
+        store={extension.store_source}
+      />
+
+      <div className={styles.actionButtons}>
+        <button onClick={handleCrossStoreClick} className={styles.actionBtn}>
+          {showCrossStore ? 'Hide' : 'Find in other stores'}
+        </button>
+
+        {hasPermissions && (
+          <button onClick={handleHistoryClick} className={styles.actionBtn}>
+            {showHistory ? 'Hide' : 'View Permission History'}
+          </button>
+        )}
+      </div>
 
       {showCrossStore && (
         <CrossStoreResults
@@ -90,6 +122,20 @@ export function ResultCard({ extension }: ResultCardProps) {
           loading={crossStore.loading}
           error={crossStore.error}
         />
+      )}
+
+      {showHistory && (
+        <>
+          {extensionHistory.loading && (
+            <div className={styles.historyLoading}>Loading permission history...</div>
+          )}
+          {extensionHistory.error && (
+            <div className={styles.historyError}>{extensionHistory.error}</div>
+          )}
+          {extensionHistory.history && (
+            <PermissionHistory history={extensionHistory.history} />
+          )}
+        </>
       )}
     </div>
   )

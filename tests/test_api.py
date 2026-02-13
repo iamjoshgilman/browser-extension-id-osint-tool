@@ -167,3 +167,36 @@ def test_search_with_include_permissions(client):
     assert 'extension_id' in data
     assert 'results' in data
     assert isinstance(data['results'], list)
+
+def test_extension_history_missing_store(client):
+    """Test extension history endpoint returns 400 when store parameter is missing"""
+    response = client.get('/api/extension/test123/history')
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert 'error' in data
+    assert 'required' in data['error'].lower()
+
+def test_extension_history_invalid_store(client):
+    """Test extension history endpoint returns 400 for invalid store"""
+    response = client.get('/api/extension/test123/history?store=invalid')
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert 'error' in data
+    assert 'invalid' in data['error'].lower()
+
+def test_extension_history_empty(client):
+    """Test extension history endpoint returns 200 with empty snapshots for unknown extension"""
+    response = client.get('/api/extension/nonexistent123/history?store=chrome')
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert 'extension_id' in data
+    assert data['extension_id'] == 'nonexistent123'
+    assert 'store' in data
+    assert data['store'] == 'chrome'
+    assert 'snapshots' in data
+    assert isinstance(data['snapshots'], list)
+    assert len(data['snapshots']) == 0
+    assert 'total_snapshots' in data
+    assert data['total_snapshots'] == 0
+    assert 'has_permission_changes' in data
+    assert data['has_permission_changes'] == False

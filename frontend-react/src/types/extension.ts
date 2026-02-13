@@ -20,3 +20,28 @@ export interface ExtensionData {
   scraped_at: string | null
   delisted?: boolean
 }
+
+export interface PermissionDiff {
+  added: string[]
+  removed: string[]
+  version_changed: boolean
+  previous_version: string | null
+  name_changed: boolean
+  previous_name: string | null
+}
+
+export interface ExtensionSnapshot {
+  version: string
+  name: string
+  permissions: string[]
+  scraped_at: string
+  diff: PermissionDiff | null
+}
+
+export interface ExtensionHistoryResponse {
+  extension_id: string
+  store: string
+  snapshots: ExtensionSnapshot[]
+  total_snapshots: number
+  has_permission_changes: boolean
+}
