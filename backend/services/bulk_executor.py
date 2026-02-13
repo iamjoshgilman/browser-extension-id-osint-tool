@@ -9,6 +9,18 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, List, Optional, Type
 from database.manager import DatabaseManager
 from scrapers.base import ExtensionScraper
+from scrapers.chrome import ChromeStoreScraper
+from scrapers.firefox import FirefoxAddonsScraper
+from scrapers.edge import EdgeAddonsScraper
+from scrapers.safari import SafariExtensionScraper
+
+# Default scraper classes for standalone usage
+SCRAPER_CLASSES = {
+    "chrome": ChromeStoreScraper,
+    "firefox": FirefoxAddonsScraper,
+    "edge": EdgeAddonsScraper,
+    "safari": SafariExtensionScraper,
+}
 
 logger = logging.getLogger(__name__)
 

@@ -4,6 +4,7 @@ import type {
   SearchResponse,
   BulkSearchRequest,
   BulkSearchResponse,
+  BulkJobResponse,
   SearchByNameRequest,
   SearchByNameResponse,
   HealthResponse,
@@ -51,4 +52,29 @@ export async function getExtensionHistory(
   return apiClient.request<ExtensionHistoryResponse>(
     `/extension/${encodeURIComponent(extensionId)}/history?store=${store}`
   )
+}
+
+export async function submitBulkSearchAsync(
+  ids: string[],
+  stores: string[],
+  includePermissions: boolean
+): Promise<BulkJobResponse> {
+  return apiClient.request<BulkJobResponse>('/bulk-search-async', {
+    method: 'POST',
+    body: JSON.stringify({
+      extension_ids: ids,
+      stores,
+      include_permissions: includePermissions,
+    }),
+  })
+}
+
+export async function getBulkJobStatus(jobId: string): Promise<BulkJobResponse> {
+  return apiClient.request<BulkJobResponse>(`/bulk-search-async/${jobId}`)
+}
+
+export async function cancelBulkJob(jobId: string): Promise<{ job_id: string; status: string }> {
+  return apiClient.request<{ job_id: string; status: string }>(`/bulk-search-async/${jobId}`, {
+    method: 'DELETE',
+  })
 }

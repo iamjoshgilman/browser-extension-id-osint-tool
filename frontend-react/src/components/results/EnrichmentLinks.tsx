@@ -44,6 +44,15 @@ export function EnrichmentLinks({ extensionId, store }: EnrichmentLinksProps) {
     })
   }
 
+  // Safari-specific links
+  if (store === 'safari') {
+    links.push({
+      label: 'App Store Page',
+      url: `https://apps.apple.com/app/id${extensionId}`,
+      description: 'View in the App Store',
+    })
+  }
+
   // Edge has no store-specific links beyond VirusTotal
 
   return (

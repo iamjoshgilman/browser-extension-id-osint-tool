@@ -15,7 +15,7 @@ export function SearchPanel({ onSingleSearch, onBulkSearch, loading }: SearchPan
   const [mode, setMode] = useState<SearchMode>('single')
   const [singleId, setSingleId] = useState('')
   const [bulkIds, setBulkIds] = useState('')
-  const [stores, setStores] = useState(['chrome', 'firefox', 'edge'])
+  const [stores, setStores] = useState(['chrome', 'firefox', 'edge', 'safari'])
   const [includePermissions, setIncludePermissions] = useState(false)
 
   const handleSearch = () => {

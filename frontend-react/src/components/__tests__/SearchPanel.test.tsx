@@ -22,11 +22,12 @@ describe('SearchPanel', () => {
     expect(screen.getByText('Search Extensions')).toBeInTheDocument()
   })
 
-  it('shows all three store checkboxes', () => {
+  it('shows all four store checkboxes', () => {
     render(<SearchPanel {...defaultProps} />)
     expect(screen.getByText('Chrome Web Store')).toBeInTheDocument()
     expect(screen.getByText('Firefox Add-ons')).toBeInTheDocument()
     expect(screen.getByText('Edge Add-ons')).toBeInTheDocument()
+    expect(screen.getByText('Safari Extensions')).toBeInTheDocument()
   })
 
   it('disables search button when loading', () => {
@@ -41,7 +42,7 @@ describe('SearchPanel', () => {
     fireEvent.click(screen.getByText('Search Extension'))
     expect(defaultProps.onSingleSearch).toHaveBeenCalledWith(
       'testid123',
-      ['chrome', 'firefox', 'edge'],
+      ['chrome', 'firefox', 'edge', 'safari'],
       false
     )
   })

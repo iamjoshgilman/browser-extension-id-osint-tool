@@ -4,6 +4,7 @@ const STORES = [
   { id: 'chrome', label: 'Chrome Web Store' },
   { id: 'firefox', label: 'Firefox Add-ons' },
   { id: 'edge', label: 'Edge Add-ons' },
+  { id: 'safari', label: 'Safari Extensions' },
 ]
 
 interface StoreSelectorProps {

@@ -49,3 +49,15 @@ export interface ApiError {
   error: string
   message?: string
 }
+
+export interface BulkJobResponse {
+  job_id: string
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled'
+  total_tasks: number
+  completed_tasks: number
+  failed_tasks: number
+  progress_pct: number
+  results: Record<string, any[]>
+  poll_url: string
+  stream_url: string
+}

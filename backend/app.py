@@ -18,6 +18,7 @@ from database.manager import DatabaseManager
 from scrapers.chrome import ChromeStoreScraper
 from scrapers.firefox import FirefoxAddonsScraper
 from scrapers.edge import EdgeAddonsScraper
+from scrapers.safari import SafariExtensionScraper
 from services.bulk_executor import BulkSearchExecutor
 from config import get_config
 
@@ -63,6 +64,7 @@ scrapers = {
     "chrome": ChromeStoreScraper(),
     "firefox": FirefoxAddonsScraper(),
     "edge": EdgeAddonsScraper(),
+    "safari": SafariExtensionScraper(),
 }
 
 # Scraper classes for bulk executor (need fresh instances per thread)
@@ -70,6 +72,7 @@ SCRAPER_CLASSES = {
     "chrome": ChromeStoreScraper,
     "firefox": FirefoxAddonsScraper,
     "edge": EdgeAddonsScraper,
+    "safari": SafariExtensionScraper,
 }
 
 # Active bulk jobs
@@ -81,8 +84,13 @@ def require_api_key(f):
     """Decorator to require API key for protected endpoints"""
 
     def decorated_function(*args, **kwargs):
-        # Check the environment variable directly each time
-        api_key_required = os.environ.get("API_KEY_REQUIRED", "False").lower() == "true"
+        # Check app.config first for testability, then fall back to env var
+        api_key_required = app.config.get("API_KEY_REQUIRED", False)
+        if isinstance(api_key_required, str):
+            api_key_required = api_key_required.lower() == "true"
+        # Also check env var (allows runtime override and test monkeypatching)
+        if not api_key_required:
+            api_key_required = os.environ.get("API_KEY_REQUIRED", "False").lower() == "true"
 
         if not api_key_required:
             return f(*args, **kwargs)
@@ -329,6 +337,10 @@ def search_by_name():
             search_urls[
                 store_name
             ] = f"https://microsoftedge.microsoft.com/addons/search/{requests_quote(name)}"
+        elif store_name == "safari":
+            search_urls[
+                store_name
+            ] = f"https://apps.apple.com/us/search?term={requests_quote(name)}"
 
     return jsonify(
         {
@@ -379,8 +391,13 @@ def get_extension_history(extension_id):
     if not store:
         return jsonify({"error": "Store parameter is required"}), 400
 
-    if store not in ["chrome", "firefox", "edge"]:
-        return jsonify({"error": "Invalid store. Must be one of: chrome, firefox, edge"}), 400
+    if store not in ["chrome", "firefox", "edge", "safari"]:
+        return (
+            jsonify(
+                {"error": "Invalid store. Must be one of: chrome, firefox, edge, safari"}
+            ),
+            400,
+        )
 
     try:
         # Get historical snapshots

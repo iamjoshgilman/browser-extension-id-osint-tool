@@ -1,17 +1,22 @@
 import { useState, useCallback } from 'react'
 import { AppShell } from './components/layout/AppShell'
 import { SearchPanel } from './components/search/SearchPanel'
+import { BulkProgress } from './components/search/BulkProgress'
 import { ResultsContainer } from './components/results/ResultsContainer'
 import { useSearch } from './hooks/useSearch'
 import { useBulkSearch } from './hooks/useBulkSearch'
+import { useBulkSearchAsync } from './hooks/useBulkSearchAsync'
+
+const ASYNC_BULK_THRESHOLD = 5
 
 export default function App() {
   const single = useSearch()
   const bulk = useBulkSearch()
+  const asyncBulk = useBulkSearchAsync()
 
   const [lastQuery, setLastQuery] = useState('')
   const [lastStores, setLastStores] = useState<string[]>([])
-  const [mode, setMode] = useState<'single' | 'bulk' | null>(null)
+  const [mode, setMode] = useState<'single' | 'bulk' | 'async-bulk' | null>(null)
 
   const handleSingleSearch = useCallback(
     (extensionId: string, stores: string[], includePermissions: boolean) => {
@@ -19,25 +24,44 @@ export default function App() {
       setLastQuery(extensionId)
       setLastStores(stores)
       bulk.clearResults()
+      asyncBulk.clearResults()
       single.search(extensionId, stores, includePermissions)
     },
-    [single, bulk]
+    [single, bulk, asyncBulk]
   )
 
   const handleBulkSearch = useCallback(
     (extensionIds: string[], stores: string[], includePermissions: boolean) => {
-      setMode('bulk')
       setLastQuery(extensionIds.join(', '))
       setLastStores(stores)
       single.clearResults()
-      bulk.search(extensionIds, stores, includePermissions)
+
+      if (extensionIds.length > ASYNC_BULK_THRESHOLD) {
+        setMode('async-bulk')
+        bulk.clearResults()
+        asyncBulk.startBulkSearch(extensionIds, stores, includePermissions)
+      } else {
+        setMode('bulk')
+        asyncBulk.clearResults()
+        bulk.search(extensionIds, stores, includePermissions)
+      }
     },
-    [single, bulk]
+    [single, bulk, asyncBulk]
   )
 
-  const loading = single.loading || bulk.loading
-  const results = mode === 'bulk' ? bulk.results : single.results
-  const error = mode === 'bulk' ? bulk.error : single.error
+  const loading = single.loading || bulk.loading || asyncBulk.loading
+  const results =
+    mode === 'async-bulk'
+      ? asyncBulk.results
+      : mode === 'bulk'
+        ? bulk.results
+        : single.results
+  const error =
+    mode === 'async-bulk'
+      ? asyncBulk.error
+      : mode === 'bulk'
+        ? bulk.error
+        : single.error
 
   return (
     <AppShell>
@@ -46,6 +70,16 @@ export default function App() {
         onBulkSearch={handleBulkSearch}
         loading={loading}
       />
+
+      {mode === 'async-bulk' && (asyncBulk.loading || asyncBulk.status) && (
+        <BulkProgress
+          completed={asyncBulk.progress.completed}
+          total={asyncBulk.progress.total}
+          pct={asyncBulk.progress.pct}
+          status={asyncBulk.status}
+          onCancel={asyncBulk.cancelSearch}
+        />
+      )}
 
       <ResultsContainer
         results={results}
