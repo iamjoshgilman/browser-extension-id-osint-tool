@@ -1,7 +1,7 @@
 .container {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid var(--ctp-surface1);
+  border-top: 1px solid var(--border-muted);
 }
 
 .loading,
@@ -14,18 +14,19 @@
 }
 
 .loading {
-  background-color: var(--ctp-surface1);
-  color: var(--ctp-subtext0);
+  background-color: var(--bg-surface);
+  color: var(--text-secondary);
 }
 
 .error {
-  background-color: var(--ctp-surface1);
-  color: var(--ctp-red);
+  background-color: var(--risk-critical-bg);
+  color: var(--risk-critical-text);
+  border: 1px solid var(--risk-critical-border);
 }
 
 .noResults {
-  background-color: var(--ctp-surface1);
-  color: var(--ctp-subtext0);
+  background-color: var(--bg-surface);
+  color: var(--text-secondary);
 }
 
 .results {
@@ -35,7 +36,7 @@
 .heading {
   font-size: 1em;
   font-weight: 600;
-  color: var(--ctp-lavender);
+  color: var(--accent-primary);
   margin: 0 0 12px 0;
 }
 
@@ -46,16 +47,16 @@
 }
 
 .card {
-  background-color: var(--ctp-surface1);
+  background-color: var(--bg-surface);
   padding: 12px 14px;
   border-radius: 8px;
-  border: 1px solid var(--ctp-surface2);
-  transition: all 0.2s ease;
+  border: 1px solid var(--border-default);
+  transition: all 0.15s ease;
 }
 
 .card:hover {
-  background-color: var(--ctp-surface2);
-  border-color: var(--ctp-lavender);
+  background-color: var(--bg-elevated);
+  border-color: var(--border-emphasis);
   transform: translateY(-1px);
 }
 
@@ -69,7 +70,7 @@
 
 .name {
   font-weight: 600;
-  color: var(--ctp-text);
+  color: var(--text-primary);
   font-size: 0.95em;
   flex: 1;
   overflow: hidden;
@@ -85,25 +86,25 @@
 }
 
 .publisher {
-  color: var(--ctp-subtext0);
+  color: var(--text-secondary);
 }
 
 .users {
-  color: var(--ctp-subtext1);
+  color: var(--text-tertiary);
 }
 
 .link {
   display: inline-block;
   margin-top: 4px;
-  color: var(--ctp-sapphire);
+  color: var(--text-link);
   text-decoration: none;
   font-size: 0.9em;
   font-weight: 500;
-  transition: color 0.2s ease;
+  transition: color 0.15s ease;
 }
 
 .link:hover {
-  color: var(--ctp-sky);
+  color: var(--accent-info);
   text-decoration: underline;
 }
 
@@ -122,18 +123,18 @@
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
-  background-color: var(--ctp-surface1);
-  border: 1px solid var(--ctp-surface2);
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-default);
   border-radius: 6px;
   text-decoration: none;
-  color: var(--ctp-text);
+  color: var(--text-primary);
   font-size: 0.9em;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .searchLink:hover {
-  background-color: var(--ctp-surface2);
-  border-color: var(--ctp-sapphire);
+  background-color: var(--bg-elevated);
+  border-color: var(--accent-primary);
   transform: translateX(4px);
 }
 
@@ -142,7 +143,7 @@
 }
 
 .arrow {
-  color: var(--ctp-sapphire);
+  color: var(--text-link);
   font-weight: bold;
 }
 

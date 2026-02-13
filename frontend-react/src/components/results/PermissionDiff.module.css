@@ -1,8 +1,9 @@
 .diffContainer {
   padding: 12px;
-  background-color: var(--ctp-surface0);
+  background-color: var(--bg-primary);
   border-radius: 6px;
   margin-top: 8px;
+  border: 1px solid var(--border-muted);
 }
 
 .versionChange {
@@ -11,18 +12,18 @@
   gap: 8px;
   margin-bottom: 10px;
   padding: 6px 10px;
-  background-color: var(--ctp-surface1);
+  background-color: var(--bg-surface);
   border-radius: 4px;
   font-size: 0.9em;
 }
 
 .label {
   font-weight: 600;
-  color: var(--ctp-subtext1);
+  color: var(--text-secondary);
 }
 
 .versionText {
-  color: var(--ctp-lavender);
+  color: var(--accent-primary);
   font-weight: 500;
 }
 
@@ -32,13 +33,13 @@
   gap: 8px;
   margin-bottom: 10px;
   padding: 6px 10px;
-  background-color: var(--ctp-surface1);
+  background-color: var(--bg-surface);
   border-radius: 4px;
   font-size: 0.9em;
 }
 
 .nameText {
-  color: var(--ctp-red);
+  color: var(--accent-danger);
   font-weight: 500;
 }
 
@@ -49,7 +50,7 @@
 .sectionTitle {
   font-weight: 600;
   font-size: 0.85em;
-  color: var(--ctp-subtext1);
+  color: var(--text-secondary);
   margin-bottom: 6px;
 }
 
@@ -64,20 +65,20 @@
   align-items: center;
   gap: 6px;
   padding: 4px 8px;
-  background-color: var(--ctp-surface1);
+  background-color: var(--bg-surface);
   border-radius: 4px;
   font-size: 0.85em;
-  font-family: 'Courier New', monospace;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
 }
 
 .addedPrefix {
-  color: var(--ctp-green);
+  color: var(--accent-success);
   font-weight: bold;
   font-size: 1em;
 }
 
 .removedPrefix {
-  color: var(--ctp-red);
+  color: var(--accent-danger);
   font-weight: bold;
   font-size: 1em;
 }
@@ -85,28 +86,29 @@
 .permissionName {
   flex: 1;
   font-weight: 500;
+  color: var(--text-primary);
 }
 
 .permissionName.critical {
-  color: var(--ctp-red);
+  color: var(--risk-critical-text);
 }
 
 .permissionName.high {
-  color: var(--ctp-peach);
+  color: var(--risk-high-text);
 }
 
 .permissionName.medium {
-  color: var(--ctp-yellow);
+  color: var(--risk-medium-text);
 }
 
 .permissionName.low {
-  color: var(--ctp-green);
+  color: var(--risk-low-text);
 }
 
 .noPermissionChanges {
   padding: 8px;
   text-align: center;
-  color: var(--ctp-subtext0);
+  color: var(--text-tertiary);
   font-size: 0.9em;
   font-style: italic;
 }

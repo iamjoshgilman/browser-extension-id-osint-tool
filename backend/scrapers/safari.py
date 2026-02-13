@@ -83,6 +83,39 @@ class SafariExtensionScraper(ExtensionScraper):
             # Extract homepage URL
             homepage_url = result.get("sellerUrl", "")
 
+            # Extract content advisory rating (4+, 9+, 12+, 17+)
+            content_rating = result.get("contentAdvisoryRating", "")
+
+            # Extract file size and format as human-readable
+            file_size_bytes = result.get("fileSizeBytes", "")
+            file_size = ""
+            if file_size_bytes:
+                try:
+                    size_int = int(file_size_bytes)
+                    if size_int >= 1024 * 1024 * 1024:
+                        file_size = f"{size_int / (1024 * 1024 * 1024):.1f} GB"
+                    elif size_int >= 1024 * 1024:
+                        file_size = f"{size_int / (1024 * 1024):.1f} MB"
+                    elif size_int >= 1024:
+                        file_size = f"{size_int / 1024:.1f} KB"
+                    else:
+                        file_size = f"{size_int} B"
+                except (ValueError, TypeError):
+                    pass
+
+            # Extract supported languages
+            language_codes = result.get("languageCodesISO2A", [])
+            languages = ", ".join(language_codes) if language_codes else ""
+
+            # Extract original release date
+            release_date = result.get("releaseDate", "")
+
+            # Extract price
+            price = result.get("formattedPrice", "")
+
+            # Extract developer website
+            developer_website = result.get("sellerUrl", "")
+
             # Create extension data
             data = ExtensionData(
                 extension_id=normalized_id,
@@ -99,6 +132,12 @@ class SafariExtensionScraper(ExtensionScraper):
                 homepage_url=homepage_url,
                 last_updated=result.get("currentVersionReleaseDate", ""),
                 found=True,
+                content_rating=content_rating,
+                file_size=file_size,
+                languages=languages,
+                release_date=release_date,
+                price=price,
+                developer_website=developer_website,
             )
 
             # Note: iTunes API doesn't provide:

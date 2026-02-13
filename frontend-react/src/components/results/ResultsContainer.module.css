@@ -1,25 +1,26 @@
 .container {
-  background-color: var(--ctp-mantle);
-  padding: 30px;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  background-color: var(--bg-secondary);
+  padding: 28px;
+  border-radius: 8px;
+  border: 1px solid var(--border-default);
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 25px;
-  padding-bottom: 15px;
-  border-bottom: 2px solid var(--ctp-surface0);
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-default);
 }
 
 .header h2 {
-  color: var(--ctp-text);
+  color: var(--text-primary);
   font-size: 1.3em;
+  font-weight: 600;
 }
 
 .count {
-  color: var(--ctp-subtext1);
+  color: var(--text-secondary);
   font-size: 0.95em;
 }

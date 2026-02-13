@@ -20,6 +20,7 @@ export function storeName(store: string): string {
     chrome: 'Chrome Web Store',
     firefox: 'Firefox Add-ons',
     edge: 'Edge Add-ons',
+    safari: 'Safari Extensions',
   }
   return names[store] || store
 }

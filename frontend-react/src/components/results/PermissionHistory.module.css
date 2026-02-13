@@ -1,7 +1,7 @@
 .container {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid var(--ctp-surface1);
+  border-top: 1px solid var(--border-muted);
 }
 
 .emptyMessage,
@@ -10,8 +10,8 @@
   border-radius: 6px;
   font-size: 0.95em;
   text-align: center;
-  background-color: var(--ctp-surface1);
-  color: var(--ctp-subtext0);
+  background-color: var(--bg-surface);
+  color: var(--text-secondary);
 }
 
 .timeline {
@@ -37,21 +37,21 @@
   height: 12px;
   border-radius: 50%;
   flex-shrink: 0;
-  border: 2px solid var(--ctp-base);
+  border: 2px solid var(--bg-primary);
 }
 
 .dotNormal {
-  background-color: var(--ctp-lavender);
+  background-color: var(--accent-primary);
 }
 
 .dotChanged {
-  background-color: var(--ctp-yellow);
+  background-color: var(--accent-warning);
 }
 
 .line {
   width: 2px;
   flex: 1;
-  background-color: var(--ctp-surface2);
+  background-color: var(--border-default);
   min-height: 40px;
 }
 
@@ -61,11 +61,11 @@
 }
 
 .snapshotCard {
-  background-color: var(--ctp-surface1);
-  border: 1px solid var(--ctp-surface2);
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-default);
   border-radius: 8px;
   padding: 12px 14px;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .snapshotCard.clickable {
@@ -73,8 +73,8 @@
 }
 
 .snapshotCard.clickable:hover {
-  background-color: var(--ctp-surface2);
-  border-color: var(--ctp-lavender);
+  background-color: var(--bg-elevated);
+  border-color: var(--accent-primary);
   transform: translateX(2px);
 }
 
@@ -88,8 +88,8 @@
 .versionBadge {
   display: inline-block;
   padding: 4px 10px;
-  background-color: var(--ctp-lavender);
-  color: var(--ctp-base);
+  background-color: var(--accent-primary);
+  color: var(--bg-primary);
   border-radius: 4px;
   font-size: 0.85em;
   font-weight: 600;
@@ -97,7 +97,7 @@
 
 .timestamp {
   font-size: 0.85em;
-  color: var(--ctp-subtext0);
+  color: var(--text-tertiary);
 }
 
 .snapshotMeta {
@@ -108,7 +108,7 @@
 }
 
 .permissionCount {
-  color: var(--ctp-text);
+  color: var(--text-primary);
 }
 
 .changesIndicator {
@@ -119,11 +119,11 @@
 }
 
 .added {
-  color: var(--ctp-green);
+  color: var(--accent-success);
 }
 
 .removed {
-  color: var(--ctp-red);
+  color: var(--accent-danger);
 }
 
 @media (max-width: 768px) {

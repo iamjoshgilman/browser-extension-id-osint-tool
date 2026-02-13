@@ -1,29 +1,37 @@
 .toggle {
   display: flex;
-  gap: 20px;
-  margin-bottom: 25px;
+  gap: 16px;
+  margin-bottom: 24px;
   justify-content: center;
 }
 
 .button {
-  padding: 10px 20px;
-  background-color: var(--ctp-surface0);
-  color: var(--ctp-text);
-  border: 2px solid transparent;
-  border-radius: 8px;
+  padding: 10px 24px;
+  background-color: var(--bg-surface);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 16px;
-  transition: all 0.3s ease;
+  font-size: 15px;
+  font-weight: 500;
+  transition: all 0.15s ease;
 }
 
 .button:hover {
-  background-color: var(--ctp-surface1);
+  background-color: var(--bg-elevated);
+  color: var(--text-primary);
+  border-color: var(--border-emphasis);
 }
 
 .active {
-  background-color: var(--ctp-lavender);
-  color: var(--ctp-crust);
-  border-color: var(--ctp-lavender);
+  background-color: var(--accent-primary);
+  color: var(--bg-primary);
+  border-color: var(--accent-primary);
+}
+
+.active:hover {
+  background-color: var(--accent-info);
+  border-color: var(--accent-info);
 }
 
 @media (max-width: 768px) {

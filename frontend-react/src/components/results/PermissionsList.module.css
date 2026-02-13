@@ -1,32 +1,30 @@
 .container {
-  margin-top: 10px;
+  margin-top: 12px;
 }
 
 .toggleBtn {
-  background: none;
-  border: 1px solid var(--ctp-surface2);
-  color: var(--ctp-subtext1);
+  background: transparent;
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
   padding: 6px 14px;
   border-radius: 6px;
   cursor: pointer;
   font-size: 0.85em;
-  transition: all 0.2s ease;
+  font-weight: 500;
+  transition: all 0.15s ease;
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
 .toggleBtn:hover {
-  border-color: var(--ctp-lavender);
-  color: var(--ctp-text);
-  background: none;
-  transform: none;
-  box-shadow: none;
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
 }
 
 .arrow {
   font-size: 0.7em;
-  transition: transform 0.2s ease;
+  transition: transform 0.15s ease;
 }
 
 .arrowUp {
@@ -34,7 +32,7 @@
 }
 
 .list {
-  margin-top: 10px;
+  margin-top: 12px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -50,32 +48,33 @@
 
 .name {
   font-size: 0.85em;
-  background-color: var(--ctp-mantle);
-  padding: 2px 6px;
+  background-color: var(--bg-surface);
+  padding: 2px 8px;
   border-radius: 4px;
-  color: var(--ctp-pink);
+  color: var(--accent-info);
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
 }
 
 .desc {
   font-size: 0.8em;
-  color: var(--ctp-overlay1);
+  color: var(--text-tertiary);
 }
 
 .unavailable {
-  margin-top: 10px;
+  margin-top: 12px;
   padding: 10px 14px;
-  background-color: var(--ctp-surface0);
-  border-left: 3px solid var(--ctp-yellow);
+  background-color: var(--risk-medium-bg);
+  border-left: 3px solid var(--risk-medium-text);
   border-radius: 4px;
   font-size: 0.85em;
-  color: var(--ctp-subtext0);
+  color: var(--text-secondary);
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
 .unavailable a {
-  color: var(--ctp-sapphire);
+  color: var(--text-link);
 }
 
 .icon {
@@ -84,8 +83,8 @@
   justify-content: center;
   width: 20px;
   height: 20px;
-  background-color: var(--ctp-yellow);
-  color: var(--ctp-crust);
+  background-color: var(--risk-medium-text);
+  color: var(--bg-primary);
   border-radius: 50%;
   font-size: 0.75em;
   font-weight: 700;
@@ -93,7 +92,7 @@
 }
 
 .none {
-  margin-top: 10px;
+  margin-top: 12px;
   font-size: 0.85em;
-  color: var(--ctp-overlay0);
+  color: var(--text-tertiary);
 }

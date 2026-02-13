@@ -8,7 +8,7 @@ interface BadgeProps {
   className?: string
 }
 
-export function Badge({ children, color, textColor = 'var(--ctp-crust)', className = '' }: BadgeProps) {
+export function Badge({ children, color, textColor = '#0d1117', className = '' }: BadgeProps) {
   const style: CSSProperties = {
     backgroundColor: color,
     color: textColor,

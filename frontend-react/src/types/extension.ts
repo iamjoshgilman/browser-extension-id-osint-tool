@@ -19,6 +19,17 @@ export interface ExtensionData {
   cached: boolean
   scraped_at: string | null
   delisted?: boolean
+
+  // SOC-relevant fields
+  content_rating?: string
+  file_size?: string
+  languages?: string
+  release_date?: string
+  update_frequency?: string
+  price?: string
+  developer_website?: string
+  developer_email?: string
+  support_url?: string
 }
 
 export interface PermissionDiff {

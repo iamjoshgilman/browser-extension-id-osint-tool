@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { classifyAllPermissions } from '../../utils/permissions'
+import { classifyAllPermissions, getPermissionDescription } from '../../utils/permissions'
 import { PermissionBadge } from './PermissionBadge'
 import styles from './PermissionsList.module.css'
 
@@ -42,10 +42,10 @@ export function PermissionsList({ permissions, store }: PermissionsListProps) {
       {expanded && (
         <div className={styles.list}>
           {classified.map((p, i) => (
-            <div key={i} className={styles.item}>
+            <div key={i} className={styles.item} title={getPermissionDescription(p.name)}>
               <PermissionBadge risk={p.risk} />
               <code className={styles.name}>{p.name}</code>
-              <span className={styles.desc}>{p.description}</span>
+              <span className={styles.desc}>{getPermissionDescription(p.name)}</span>
             </div>
           ))}
         </div>

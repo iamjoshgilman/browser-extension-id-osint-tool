@@ -122,11 +122,58 @@ class FirefoxAddonsScraper(ExtensionScraper):
                     data.last_updated = current_version["created"]
 
                 # Extract privacy policy
-                privacy_url = addon_data.get("contributions_url", "")
-                if not privacy_url:
-                    privacy_url = addon_data.get("privacy_policy_url", "")
+                privacy_url = addon_data.get("privacy_policy_url", "")
                 if privacy_url:
                     data.privacy_policy_url = self._extract_localized_string(privacy_url)
+
+                # Extract support URL from contributions_url or support fields
+                contributions_url = addon_data.get("contributions_url", "")
+                if contributions_url:
+                    data.support_url = self._extract_localized_string(contributions_url)
+                support_url = addon_data.get("support_url", "")
+                if support_url:
+                    data.support_url = self._extract_localized_string(support_url)
+
+                # Extract developer website from homepage or author URL
+                if homepage_url:
+                    data.developer_website = homepage_url
+                authors = addon_data.get("authors", [])
+                if authors and isinstance(authors[0], dict):
+                    author_url = authors[0].get("url", "")
+                    if author_url and not data.developer_website:
+                        data.developer_website = author_url
+
+                # Extract weekly downloads as supplementary info
+                weekly_downloads = addon_data.get("weekly_downloads", 0)
+                if weekly_downloads:
+                    data.user_count = (
+                        f"{addon_data.get('average_daily_users', 0):,} daily users "
+                        f"({weekly_downloads:,} weekly downloads)"
+                    )
+
+                # Extract release date (created field is the original creation date)
+                created_date = addon_data.get("created", "")
+                if created_date:
+                    data.release_date = created_date
+
+                # Extract type (extension, theme, etc.) into category if not set
+                addon_type = addon_data.get("type", "")
+                if addon_type and not data.category:
+                    data.category = addon_type
+
+                # Extract is_recommended as a trust signal -- store in update_frequency
+                # as a lightweight indicator (avoids adding yet another field)
+                is_recommended = addon_data.get("is_recommended", False)
+                if is_recommended:
+                    data.update_frequency = "Recommended by Firefox"
+
+                # Extract screenshot count for SOC use (no screenshots is suspicious)
+                previews = addon_data.get("previews", [])
+                screenshot_count = len(previews)
+                if screenshot_count == 0 and not data.update_frequency:
+                    data.update_frequency = "No screenshots"
+                elif screenshot_count > 0 and not data.update_frequency:
+                    data.update_frequency = f"{screenshot_count} screenshot(s)"
 
                 logger.info(f"Successfully scraped Firefox addon via API: {data.name}")
                 return data

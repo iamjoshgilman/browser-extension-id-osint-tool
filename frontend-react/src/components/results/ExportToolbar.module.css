@@ -6,19 +6,17 @@
 
 .btn {
   padding: 8px 18px;
-  background-color: var(--ctp-surface0);
-  color: var(--ctp-text);
-  border: 2px solid var(--ctp-surface2);
-  border-radius: 8px;
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .btn:hover {
-  background-color: var(--ctp-surface1);
-  border-color: var(--ctp-lavender);
-  transform: none;
-  box-shadow: none;
+  background-color: var(--bg-elevated);
+  border-color: var(--accent-primary);
 }

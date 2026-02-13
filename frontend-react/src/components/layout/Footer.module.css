@@ -1,7 +1,8 @@
 .footer {
-  background-color: var(--ctp-crust);
+  background-color: var(--bg-primary);
   padding: 20px 0;
   text-align: center;
-  color: var(--ctp-subtext0);
+  color: var(--text-tertiary);
   margin-top: auto;
+  border-top: 1px solid var(--border-default);
 }

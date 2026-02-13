@@ -1,29 +1,43 @@
 .meta {
-  display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 20px;
   margin-bottom: 10px;
-  font-size: 0.95em;
-  color: var(--ctp-subtext1);
+  font-size: 0.9em;
+  color: var(--text-secondary);
 }
 
-.meta span {
+.metaItem {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 5px;
+  min-width: 0;
 }
 
 .meta strong {
-  color: var(--ctp-text);
+  color: var(--text-primary);
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .publisher {
-  color: var(--ctp-mauve);
+  color: var(--accent-purple);
+  font-weight: 500;
+}
+
+.link {
+  color: var(--accent-primary);
+  text-decoration: none;
+}
+
+.link:hover {
+  text-decoration: underline;
 }
 
 @media (max-width: 768px) {
   .meta {
-    flex-direction: column;
-    gap: 8px;
+    grid-template-columns: 1fr;
+    gap: 6px;
   }
 }

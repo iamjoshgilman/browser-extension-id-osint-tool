@@ -263,6 +263,51 @@ class ChromeStoreScraper(ExtensionScraper):
                         data.last_updated = updated_match.group(1).strip()
                         break
 
+            # Extract developer website from structured data or page
+            if not data.developer_website:
+                # Check JSON-LD author url
+                for script in scripts:
+                    try:
+                        json_data = json.loads(script.string)
+                        if json_data.get("@type") == "WebApplication":
+                            author = json_data.get("author", {})
+                            if isinstance(author, dict) and author.get("url"):
+                                data.developer_website = author["url"]
+                            break
+                    except Exception:
+                        pass
+                # Fallback: look for "offered by" link
+                if not data.developer_website:
+                    offered_links = soup.find_all("a", href=True)
+                    for link in offered_links:
+                        href = link.get("href", "")
+                        if "developer" in href.lower() or (
+                            data.publisher and data.publisher in link.get_text()
+                        ):
+                            if href.startswith("http"):
+                                data.developer_website = href
+                                break
+
+            # Extract file size if available in the page
+            if not data.file_size:
+                size_patterns = [
+                    r"Size[:\s]*([0-9.]+\s*(?:KiB|MiB|KB|MB|B))",
+                    r'"fileSize"\s*:\s*"([^"]+)"',
+                ]
+                for pattern in size_patterns:
+                    size_match = re.search(pattern, response.text, re.IGNORECASE)
+                    if size_match:
+                        data.file_size = size_match.group(1).strip()
+                        break
+
+            # Extract languages if available
+            if not data.languages:
+                lang_match = re.search(
+                    r"Languages?[:\s]*([^<\n]+)", response.text, re.IGNORECASE
+                )
+                if lang_match:
+                    data.languages = lang_match.group(1).strip()[:200]
+
             # Final validation
             if data.name and data.name not in ["Chrome Web Store", ""]:
                 data.found = True

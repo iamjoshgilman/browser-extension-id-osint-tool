@@ -3,25 +3,28 @@
   align-items: flex-start;
   gap: 12px;
   padding: 12px 16px;
-  background-color: var(--ctp-red);
-  color: var(--ctp-crust);
-  border-radius: 8px;
+  background-color: var(--risk-critical-bg);
+  color: var(--text-primary);
+  border-radius: 6px;
   margin-bottom: 16px;
-  border: 1px solid var(--ctp-maroon);
+  border: 1px solid var(--risk-critical-border);
 }
 
 .icon {
   font-size: 1.2em;
   flex-shrink: 0;
   margin-top: 2px;
+  color: var(--risk-critical-text);
 }
 
 .message {
   margin: 0;
   line-height: 1.5;
   font-size: 0.95em;
+  color: var(--text-primary);
 }
 
 .message strong {
   font-weight: 600;
+  color: var(--risk-critical-text);
 }

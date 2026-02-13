@@ -36,7 +36,7 @@ describe('ResultCard', () => {
     render(<ResultCard extension={firefoxExtension} />)
     expect(screen.getByText('uBlock Origin')).toBeInTheDocument()
     expect(screen.getByText('Raymond Hill')).toBeInTheDocument()
-    expect(screen.getByText('1.55.0')).toBeInTheDocument()
+    expect(screen.getByText(/1\.55\.0/)).toBeInTheDocument()
   })
 
   it('shows store badge', () => {

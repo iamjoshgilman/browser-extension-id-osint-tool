@@ -113,6 +113,12 @@ class EdgeAddonsScraper(ExtensionScraper):
             if icon_url and icon_url.startswith("//"):
                 icon_url = "https:" + icon_url
 
+            # Extract developer website
+            developer_website = api_data.get("publisherWebsiteUri", "")
+
+            # Extract support URL
+            support_url = api_data.get("supportUri", "")
+
             data = ExtensionData(
                 extension_id=normalized_id,
                 name=name,
@@ -126,10 +132,12 @@ class EdgeAddonsScraper(ExtensionScraper):
                 rating_count=str(api_data.get("ratingCount", "")),
                 category=api_data.get("category", ""),
                 icon_url=icon_url,
-                homepage_url=api_data.get("publisherWebsiteUri", ""),
+                homepage_url=developer_website,
                 privacy_policy_url=api_data.get("privacyUrl", ""),
                 permissions=permissions,
                 found=True,
+                developer_website=developer_website,
+                support_url=support_url,
             )
 
             # Extract last updated from timestamp
@@ -142,6 +150,29 @@ class EdgeAddonsScraper(ExtensionScraper):
                     data.last_updated = dt.strftime("%Y-%m-%d")
                 except (ValueError, OSError, OverflowError):
                     pass
+
+            # Extract release date from firstPublishedDate
+            first_published = api_data.get("firstPublishedDate")
+            if first_published:
+                try:
+                    from datetime import datetime
+
+                    dt = datetime.fromtimestamp(first_published)
+                    data.release_date = dt.strftime("%Y-%m-%d")
+                except (ValueError, OSError, OverflowError):
+                    pass
+
+            # Extract price (Edge extensions are typically free)
+            price = api_data.get("price", "")
+            if price:
+                data.price = str(price)
+            else:
+                data.price = "Free"
+
+            # Extract languages if available
+            languages = api_data.get("languages", [])
+            if languages and isinstance(languages, list):
+                data.languages = ", ".join(languages[:10])
 
             logger.info(
                 f"Successfully scraped Edge addon: {data.name} (publisher: {data.publisher}, users: {data.user_count})"

@@ -1,17 +1,17 @@
 .card {
-  background-color: var(--ctp-surface0);
+  background-color: var(--bg-secondary);
   padding: 20px;
-  border-radius: 10px;
-  margin-bottom: 15px;
-  transition: all 0.3s ease;
-  border: 2px solid transparent;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  transition: all 0.15s ease;
+  border: 1px solid var(--border-default);
 }
 
 .card:hover {
-  background-color: var(--ctp-surface1);
-  border-color: var(--ctp-lavender);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  background-color: var(--bg-elevated);
+  border-color: var(--border-emphasis);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 .header {
@@ -30,9 +30,9 @@
 }
 
 .name {
-  font-size: 1.3em;
+  font-size: 1.25em;
   font-weight: 600;
-  color: var(--ctp-lavender);
+  color: var(--accent-primary);
 }
 
 .badges {
@@ -42,30 +42,30 @@
 }
 
 .id {
-  font-family: 'Courier New', monospace;
-  font-size: 0.9em;
-  color: var(--ctp-subtext0);
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.85em;
+  color: var(--text-tertiary);
 }
 
 .description {
-  color: var(--ctp-subtext0);
-  line-height: 1.5;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid var(--ctp-surface1);
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-muted);
 }
 
 .storeLink {
   display: inline-block;
-  margin-top: 10px;
-  color: var(--ctp-sapphire);
+  margin-top: 12px;
+  color: var(--text-link);
   text-decoration: none;
   font-weight: 500;
-  transition: color 0.3s ease;
+  transition: color 0.15s ease;
 }
 
 .storeLink:hover {
-  color: var(--ctp-sky);
+  color: var(--accent-info);
   text-decoration: underline;
 }
 
@@ -78,19 +78,19 @@
 
 .actionBtn {
   padding: 8px 16px;
-  background-color: var(--ctp-surface1);
-  color: var(--ctp-lavender);
-  border: 1px solid var(--ctp-surface2);
+  background-color: var(--bg-surface);
+  color: var(--accent-primary);
+  border: 1px solid var(--border-default);
   border-radius: 6px;
   font-size: 0.9em;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .actionBtn:hover {
-  background-color: var(--ctp-surface2);
-  border-color: var(--ctp-lavender);
+  background-color: var(--bg-elevated);
+  border-color: var(--accent-primary);
   transform: translateY(-1px);
 }
 
@@ -108,13 +108,14 @@
 }
 
 .historyLoading {
-  background-color: var(--ctp-surface1);
-  color: var(--ctp-subtext0);
+  background-color: var(--bg-surface);
+  color: var(--text-secondary);
 }
 
 .historyError {
-  background-color: var(--ctp-surface1);
-  color: var(--ctp-red);
+  background-color: var(--risk-critical-bg);
+  color: var(--risk-critical-text);
+  border: 1px solid var(--risk-critical-border);
 }
 
 @media (max-width: 768px) {
