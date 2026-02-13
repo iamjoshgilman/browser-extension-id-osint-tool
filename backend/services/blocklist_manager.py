@@ -15,15 +15,6 @@ BLOCKLIST_TTL = 24 * 60 * 60  # 24 hours
 
 BLOCKLIST_SOURCES = [
     {
-        "name": "GuardExt",
-        "url": (
-            "https://raw.githubusercontent.com/halkichi0308/"
-            "GuardExt/main/data/malicious_ids.json"
-        ),
-        "format": "json",
-        "info_url": "https://github.com/halkichi0308/GuardExt",
-    },
-    {
         "name": "Malicious Extension Sentry",
         "url": (
             "https://raw.githubusercontent.com/toborrm9/"
