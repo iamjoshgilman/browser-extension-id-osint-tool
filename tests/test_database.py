@@ -163,7 +163,7 @@ class TestDatabaseManager(unittest.TestCase):
             version='1.0.0',
             found=True
         )
-        
+
         test_data2 = ExtensionData(
             extension_id='unique123',
             name='Updated Version',
@@ -171,18 +171,18 @@ class TestDatabaseManager(unittest.TestCase):
             version='2.0.0',
             found=True
         )
-        
+
         # Save first version
         self.db_manager.save_to_cache(test_data1)
-        
+
         # Save second version (should update)
         self.db_manager.save_to_cache(test_data2)
-        
+
         # Retrieve - should get updated version
         retrieved = self.db_manager.get_from_cache('unique123', 'chrome')
         self.assertEqual(retrieved.name, 'Updated Version')
         self.assertEqual(retrieved.version, '2.0.0')
-        
+
         # Verify only one entry exists
         with self.db_manager.get_connection() as conn:
             cursor = conn.cursor()
@@ -192,6 +192,94 @@ class TestDatabaseManager(unittest.TestCase):
             )
             count = cursor.fetchone()[0]
             self.assertEqual(count, 1)
+
+    def test_get_previous_found_entry(self):
+        """Test get_previous_found_entry returns entry with found=True"""
+        # Create test data with found=True
+        test_data = ExtensionData(
+            extension_id='prev123',
+            name='Previously Found Extension',
+            store_source='chrome',
+            publisher='Test Publisher',
+            version='1.0.0',
+            found=True
+        )
+
+        # Save to database
+        self.db_manager.save_to_cache(test_data)
+
+        # Retrieve using get_previous_found_entry
+        retrieved = self.db_manager.get_previous_found_entry('prev123', 'chrome')
+
+        self.assertIsNotNone(retrieved)
+        self.assertEqual(retrieved.extension_id, 'prev123')
+        self.assertEqual(retrieved.name, 'Previously Found Extension')
+        self.assertEqual(retrieved.publisher, 'Test Publisher')
+        self.assertTrue(retrieved.found)
+
+    def test_get_previous_found_entry_not_found(self):
+        """Test get_previous_found_entry returns None when no previous found entry exists"""
+        # Query for non-existent extension
+        retrieved = self.db_manager.get_previous_found_entry('nonexistent', 'chrome')
+        self.assertIsNone(retrieved)
+
+        # Save extension with found=False
+        test_data = ExtensionData(
+            extension_id='notfound123',
+            name='',
+            store_source='firefox',
+            found=False
+        )
+        self.db_manager.save_to_cache(test_data)
+
+        # Should return None because found=False
+        retrieved = self.db_manager.get_previous_found_entry('notfound123', 'firefox')
+        self.assertIsNone(retrieved)
+
+    def test_delisted_detection_flow(self):
+        """Test full delisted detection flow"""
+        # Step 1: Save an extension with found=True
+        found_data = ExtensionData(
+            extension_id='delisted123',
+            name='Extension That Will Be Delisted',
+            store_source='edge',
+            publisher='Original Publisher',
+            version='2.0.0',
+            user_count='10,000+ users',
+            found=True
+        )
+        self.db_manager.save_to_cache(found_data)
+
+        # Step 2: Verify it's in cache and marked as found
+        cached = self.db_manager.get_from_cache('delisted123', 'edge')
+        self.assertIsNotNone(cached)
+        self.assertTrue(cached.found)
+        self.assertEqual(cached.name, 'Extension That Will Be Delisted')
+
+        # Step 3: Get previous found entry BEFORE overwriting with not-found
+        previous = self.db_manager.get_previous_found_entry('delisted123', 'edge')
+        self.assertIsNotNone(previous)
+        self.assertTrue(previous.found)
+        self.assertEqual(previous.name, 'Extension That Will Be Delisted')
+        self.assertEqual(previous.publisher, 'Original Publisher')
+
+        # Step 4: Now save a not-found entry (simulating extension being removed)
+        not_found_data = ExtensionData(
+            extension_id='delisted123',
+            name='',
+            store_source='edge',
+            found=False
+        )
+        self.db_manager.save_to_cache(not_found_data)
+
+        # Step 5: Verify the cache now has found=False
+        cached_after = self.db_manager.get_from_cache('delisted123', 'edge')
+        self.assertIsNotNone(cached_after)
+        self.assertFalse(cached_after.found)
+
+        # Step 6: get_previous_found_entry should now return None (entry is found=False)
+        previous_after = self.db_manager.get_previous_found_entry('delisted123', 'edge')
+        self.assertIsNone(previous_after)
 
 
 if __name__ == '__main__':

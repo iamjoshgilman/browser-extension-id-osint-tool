@@ -107,3 +107,63 @@ def test_api_key_required(monkeypatch):
                               headers={'X-API-Key': 'test-key-123'},
                               json={'extension_id': 'test', 'stores': ['chrome']})
         assert response.status_code != 401
+
+def test_search_by_name(client):
+    """Test the /api/search-by-name endpoint returns correct structure"""
+    response = client.post('/api/search-by-name',
+                          json={
+                              'name': 'ublock origin',
+                              'limit': 5
+                          })
+    assert response.status_code == 200
+    data = json.loads(response.data)
+
+    # Check response structure
+    assert 'name' in data
+    assert data['name'] == 'ublock origin'
+    assert 'results' in data
+    assert isinstance(data['results'], dict)
+    assert 'search_urls' in data
+    assert isinstance(data['search_urls'], dict)
+
+    # Check that all stores have search URLs
+    assert 'chrome' in data['search_urls']
+    assert 'firefox' in data['search_urls']
+    assert 'edge' in data['search_urls']
+
+    # Check results has entries for stores
+    assert 'chrome' in data['results']
+    assert 'firefox' in data['results']
+    assert 'edge' in data['results']
+
+def test_search_by_name_missing_name(client):
+    """Test validation when name is missing"""
+    # Empty name
+    response = client.post('/api/search-by-name',
+                          json={
+                              'name': ''
+                          })
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert 'error' in data
+
+    # Missing name field
+    response = client.post('/api/search-by-name',
+                          json={})
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert 'error' in data
+
+def test_search_with_include_permissions(client):
+    """Test that include_permissions parameter is accepted in /api/search"""
+    response = client.post('/api/search',
+                          json={
+                              'extension_id': 'cjpalhdlnbpafiamejdnhcphjbkeiagm',
+                              'stores': ['chrome'],
+                              'include_permissions': True
+                          })
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert 'extension_id' in data
+    assert 'results' in data
+    assert isinstance(data['results'], list)
