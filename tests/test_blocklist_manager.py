@@ -55,13 +55,18 @@ class TestBlocklistParsers:
 # Malicious Extensions
 | Extension ID | Name | Source | Insert Date |
 | ------------- | ---- | ------ | ----------- |
-| abcdefghijklmnopqrstuvwxyzabcdef | Bad Extension | source.com | 01/01/26 |
-| zyxwvutsrqponmlkjihgfedcbazyxwvu | Another Bad | source.com | 01/01/26 |
+| abcdefghijklmnopqrstuvwxyzabcdef | Bad Extension | [thehackernews.com](https://thehackernews.com/2026/02/bad.html) | 01/01/26 |
+| zyxwvutsrqponmlkjihgfedcbazyxwvu | Another Bad | plain text source | 01/01/26 |
 """
         result = self.manager._parse_markdown(content)
         assert len(result) == 2
-        assert result[0] == ("abcdefghijklmnopqrstuvwxyzabcdef", "Bad Extension")
-        assert result[1] == ("zyxwvutsrqponmlkjihgfedcbazyxwvu", "Another Bad")
+        assert result[0] == (
+            "abcdefghijklmnopqrstuvwxyzabcdef",
+            "Bad Extension",
+            "https://thehackernews.com/2026/02/bad.html",
+        )
+        # No markdown link in source column → citation_url is None
+        assert result[1] == ("zyxwvutsrqponmlkjihgfedcbazyxwvu", "Another Bad", None)
 
 
 class TestBlocklistCheck:

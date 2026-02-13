@@ -46,10 +46,14 @@ class BlocklistManager:
                 entries = self._fetch_source(source)
                 new_stats[source["name"]] = len(entries)
                 for entry in entries:
+                    ext_name = None
+                    citation_url = None
                     if isinstance(entry, tuple):
-                        ext_id, ext_name = entry
+                        ext_id = entry[0]
+                        ext_name = entry[1] if len(entry) > 1 else None
+                        citation_url = entry[2] if len(entry) > 2 else None
                     else:
-                        ext_id, ext_name = entry, None
+                        ext_id = entry
                     ext_id_lower = ext_id.lower().strip()
                     if not ext_id_lower:
                         continue
@@ -57,7 +61,7 @@ class BlocklistManager:
                         new_blocklist[ext_id_lower] = []
                     match = {
                         "source": source["name"],
-                        "url": source.get("info_url", source["url"]),
+                        "url": citation_url or source.get("info_url", source["url"]),
                     }
                     if ext_name:
                         match["name"] = ext_name
@@ -121,14 +125,20 @@ class BlocklistManager:
         return results
 
     def _parse_markdown(self, content: str) -> list:
-        """Parse markdown table format with | Extension ID | Name | columns."""
+        """Parse markdown table: | Extension ID | Name | Source | Insert Date |"""
         results = []
         for line in content.splitlines():
-            match = re.match(r"\|\s*([a-z]{32})\s*\|\s*([^|]+)", line)
+            match = re.match(
+                r"\|\s*([a-z]{32})\s*\|\s*([^|]+)\|\s*([^|]*)\|", line
+            )
             if match:
                 ext_id = match.group(1)
                 name = match.group(2).strip()
-                results.append((ext_id, name) if name else ext_id)
+                source_col = match.group(3).strip()
+                # Extract URL from markdown link [text](url)
+                url_match = re.search(r"\[.*?\]\((https?://[^)]+)\)", source_col)
+                citation_url = url_match.group(1) if url_match else None
+                results.append((ext_id, name, citation_url))
         return results
 
     def check_extension(self, extension_id: str) -> List[dict]:
