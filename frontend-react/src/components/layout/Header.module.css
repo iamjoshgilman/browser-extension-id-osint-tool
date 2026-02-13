@@ -1,0 +1,40 @@
+.header {
+  background-color: var(--bg-secondary);
+  padding: 24px 0;
+  border-bottom: 1px solid var(--border-default);
+  margin-bottom: 32px;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.title {
+  text-align: center;
+  color: var(--text-primary);
+  font-size: 2em;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+
+.subtitle {
+  text-align: center;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  font-size: 0.95em;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 768px) {
+  .title {
+    font-size: 1.5em;
+  }
+
+  .subtitle {
+    font-size: 0.85em;
+  }
+}

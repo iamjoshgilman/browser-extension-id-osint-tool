@@ -1,0 +1,26 @@
+.container {
+  background-color: var(--bg-secondary);
+  padding: 28px;
+  border-radius: 8px;
+  border: 1px solid var(--border-default);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.header h2 {
+  color: var(--text-primary);
+  font-size: 1.3em;
+  font-weight: 600;
+}
+
+.count {
+  color: var(--text-secondary);
+  font-size: 0.95em;
+}

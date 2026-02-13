@@ -1,0 +1,53 @@
+.section {
+  background-color: var(--bg-secondary);
+  padding: 28px;
+  border-radius: 8px;
+  border: 1px solid var(--border-default);
+  margin-bottom: 32px;
+}
+
+.optionsRow {
+  margin: 16px 0;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary);
+  font-size: 0.95em;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--accent-primary);
+}
+
+.searchBtn {
+  padding: 12px 32px;
+  background-color: var(--accent-primary);
+  color: var(--bg-primary);
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: block;
+  margin: 0 auto;
+}
+
+.searchBtn:hover:not(:disabled) {
+  background-color: var(--accent-info);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.searchBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

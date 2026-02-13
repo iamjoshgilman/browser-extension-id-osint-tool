@@ -1,0 +1,10 @@
+.error {
+  background-color: var(--risk-critical-bg);
+  color: var(--text-primary);
+  padding: 15px 20px;
+  border-radius: 6px;
+  margin: 20px 0;
+  text-align: center;
+  font-weight: 600;
+  border: 1px solid var(--risk-critical-border);
+}

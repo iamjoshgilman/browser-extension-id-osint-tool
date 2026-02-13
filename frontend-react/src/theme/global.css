@@ -1,0 +1,100 @@
+:root {
+  /* Backgrounds - deep dark, professional */
+  --bg-primary: #0d1117;        /* Near-black, like GitHub dark */
+  --bg-secondary: #161b22;      /* Slightly lighter for cards */
+  --bg-elevated: #1c2128;       /* Hover/elevated states */
+  --bg-surface: #21262d;        /* Input fields, panels */
+
+  /* Accent colors - professional security tool */
+  --accent-primary: #58a6ff;    /* Bright blue - primary actions */
+  --accent-success: #3fb950;    /* Green - safe/low risk */
+  --accent-warning: #d29922;    /* Amber - medium risk */
+  --accent-danger: #f85149;     /* Red - critical/high risk */
+  --accent-info: #79c0ff;       /* Light blue - info */
+  --accent-purple: #bc8cff;     /* Purple - enrichment links */
+
+  /* Text */
+  --text-primary: #e6edf3;      /* Main text */
+  --text-secondary: #8b949e;    /* Muted text */
+  --text-tertiary: #6e7681;     /* Very muted */
+  --text-link: #58a6ff;         /* Links */
+
+  /* Borders */
+  --border-default: #30363d;    /* Standard borders */
+  --border-muted: #21262d;      /* Subtle borders */
+  --border-emphasis: #484f58;   /* Emphasized borders */
+
+  /* Status/risk colors with subtle backgrounds */
+  --risk-critical-bg: rgba(248, 81, 73, 0.1);
+  --risk-critical-text: #f85149;
+  --risk-critical-border: rgba(248, 81, 73, 0.3);
+  --risk-high-bg: rgba(210, 153, 34, 0.1);
+  --risk-high-text: #d29922;
+  --risk-high-border: rgba(210, 153, 34, 0.3);
+  --risk-medium-bg: rgba(187, 128, 9, 0.1);
+  --risk-medium-text: #bb8009;
+  --risk-medium-border: rgba(187, 128, 9, 0.3);
+  --risk-low-bg: rgba(63, 185, 80, 0.1);
+  --risk-low-text: #3fb950;
+  --risk-low-border: rgba(63, 185, 80, 0.3);
+
+  /* Store colors */
+  --store-chrome: #4285f4;
+  --store-firefox: #ff7139;
+  --store-edge: #0078d7;
+  --store-safari: #007aff;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.5;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+a {
+  color: var(--text-link);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+a:hover {
+  color: var(--accent-info);
+  text-decoration: underline;
+}
+
+code {
+  background-color: var(--bg-secondary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  color: var(--accent-info);
+  font-size: 0.9em;
+}
+
+.mono {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

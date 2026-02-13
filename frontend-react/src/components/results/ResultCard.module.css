@@ -1,0 +1,126 @@
+.card {
+  background-color: var(--bg-secondary);
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  transition: all 0.15s ease;
+  border: 1px solid var(--border-default);
+}
+
+.card:hover {
+  background-color: var(--bg-elevated);
+  border-color: var(--border-emphasis);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 15px;
+}
+
+.nameRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.name {
+  font-size: 1.25em;
+  font-weight: 600;
+  color: var(--accent-primary);
+}
+
+.badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.id {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.85em;
+  color: var(--text-tertiary);
+}
+
+.description {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-muted);
+}
+
+.storeLink {
+  display: inline-block;
+  margin-top: 12px;
+  color: var(--text-link);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.15s ease;
+}
+
+.storeLink:hover {
+  color: var(--accent-info);
+  text-decoration: underline;
+}
+
+.actionButtons {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.actionBtn {
+  padding: 8px 16px;
+  background-color: var(--bg-surface);
+  color: var(--accent-primary);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  font-size: 0.9em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.actionBtn:hover {
+  background-color: var(--bg-elevated);
+  border-color: var(--accent-primary);
+  transform: translateY(-1px);
+}
+
+.actionBtn:active {
+  transform: translateY(0);
+}
+
+.historyLoading,
+.historyError {
+  margin-top: 16px;
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-size: 0.95em;
+  text-align: center;
+}
+
+.historyLoading {
+  background-color: var(--bg-surface);
+  color: var(--text-secondary);
+}
+
+.historyError {
+  background-color: var(--risk-critical-bg);
+  color: var(--risk-critical-text);
+  border: 1px solid var(--risk-critical-border);
+}
+
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    gap: 10px;
+  }
+}
