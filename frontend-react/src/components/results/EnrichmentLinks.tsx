@@ -30,13 +30,8 @@ export function EnrichmentLinks({ extensionId, store }: EnrichmentLinksProps) {
       description: 'Statistics and history',
     })
     links.push({
-      label: 'CRXcavator',
-      url: `https://crxcavator.io/report/${encodedId}`,
-      description: 'CRXcavator risk assessment',
-    })
-    links.push({
       label: 'ExtensionPedia',
-      url: `https://extensionpedia.layerxsecurity.com/extensions/${encodedId}`,
+      url: `https://layerxsecurity.com/extensions/?search=${encodedId}`,
       description: 'Extension intelligence database',
     })
   }
@@ -55,15 +50,6 @@ export function EnrichmentLinks({ extensionId, store }: EnrichmentLinksProps) {
     })
   }
 
-  // Edge-specific links
-  if (store === 'edge') {
-    links.push({
-      label: 'CRXcavator',
-      url: `https://crxcavator.io/report/${encodedId}`,
-      description: 'CRXcavator risk assessment',
-    })
-  }
-
   // Safari-specific links
   if (store === 'safari') {
     links.push({
@@ -76,8 +62,8 @@ export function EnrichmentLinks({ extensionId, store }: EnrichmentLinksProps) {
   // OTX AlienVault - available for all stores
   links.push({
     label: 'OTX AlienVault',
-    url: `https://otx.alienvault.com/indicator/search/${encodedId}`,
-    description: 'Open Threat Exchange indicators',
+    url: `https://otx.alienvault.com/browse/global/pulses?q=${encodedId}`,
+    description: 'Open Threat Exchange pulse search',
   })
 
   return (

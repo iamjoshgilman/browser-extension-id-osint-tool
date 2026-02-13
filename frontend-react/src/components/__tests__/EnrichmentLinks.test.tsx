@@ -100,40 +100,6 @@ describe('EnrichmentLinks', () => {
     expect(screen.queryByRole('link', { name: /reviews/i })).not.toBeInTheDocument()
   })
 
-  it('renders CRXcavator link for chrome and edge stores', () => {
-    const extensionId = 'test-extension-123'
-
-    // Chrome should have CRXcavator
-    const { rerender } = render(
-      <EnrichmentLinks extensionId={extensionId} store="chrome" />
-    )
-    let crxLink = screen.getByRole('link', { name: /crxcavator/i })
-    expect(crxLink).toBeInTheDocument()
-    expect(crxLink).toHaveAttribute(
-      'href',
-      `https://crxcavator.io/report/${extensionId}`
-    )
-    expect(crxLink).toHaveAttribute('target', '_blank')
-    expect(crxLink).toHaveAttribute('rel', 'noopener noreferrer')
-
-    // Edge should have CRXcavator
-    rerender(<EnrichmentLinks extensionId={extensionId} store="edge" />)
-    crxLink = screen.getByRole('link', { name: /crxcavator/i })
-    expect(crxLink).toBeInTheDocument()
-    expect(crxLink).toHaveAttribute(
-      'href',
-      `https://crxcavator.io/report/${extensionId}`
-    )
-
-    // Firefox should NOT have CRXcavator
-    rerender(<EnrichmentLinks extensionId={extensionId} store="firefox" />)
-    expect(screen.queryByRole('link', { name: /crxcavator/i })).not.toBeInTheDocument()
-
-    // Safari should NOT have CRXcavator
-    rerender(<EnrichmentLinks extensionId={extensionId} store="safari" />)
-    expect(screen.queryByRole('link', { name: /crxcavator/i })).not.toBeInTheDocument()
-  })
-
   it('renders ExtensionPedia link only for chrome store', () => {
     const extensionId = 'chromeextensionid123456789012'
 
@@ -145,7 +111,7 @@ describe('EnrichmentLinks', () => {
     expect(epLink).toBeInTheDocument()
     expect(epLink).toHaveAttribute(
       'href',
-      `https://extensionpedia.layerxsecurity.com/extensions/${extensionId}`
+      `https://layerxsecurity.com/extensions/?search=${extensionId}`
     )
     expect(epLink).toHaveAttribute('target', '_blank')
     expect(epLink).toHaveAttribute('rel', 'noopener noreferrer')
@@ -174,7 +140,7 @@ describe('EnrichmentLinks', () => {
     expect(otxLink).toBeInTheDocument()
     expect(otxLink).toHaveAttribute(
       'href',
-      `https://otx.alienvault.com/indicator/search/${extensionId}`
+      `https://otx.alienvault.com/browse/global/pulses?q=${extensionId}`
     )
     expect(otxLink).toHaveAttribute('target', '_blank')
     expect(otxLink).toHaveAttribute('rel', 'noopener noreferrer')
@@ -185,7 +151,7 @@ describe('EnrichmentLinks', () => {
     expect(otxLink).toBeInTheDocument()
     expect(otxLink).toHaveAttribute(
       'href',
-      `https://otx.alienvault.com/indicator/search/${extensionId}`
+      `https://otx.alienvault.com/browse/global/pulses?q=${extensionId}`
     )
 
     // Edge should have OTX
@@ -194,7 +160,7 @@ describe('EnrichmentLinks', () => {
     expect(otxLink).toBeInTheDocument()
     expect(otxLink).toHaveAttribute(
       'href',
-      `https://otx.alienvault.com/indicator/search/${extensionId}`
+      `https://otx.alienvault.com/browse/global/pulses?q=${extensionId}`
     )
 
     // Safari should have OTX
@@ -203,7 +169,7 @@ describe('EnrichmentLinks', () => {
     expect(otxLink).toBeInTheDocument()
     expect(otxLink).toHaveAttribute(
       'href',
-      `https://otx.alienvault.com/indicator/search/${extensionId}`
+      `https://otx.alienvault.com/browse/global/pulses?q=${extensionId}`
     )
   })
 
@@ -216,22 +182,22 @@ describe('EnrichmentLinks', () => {
   it('renders correct number of links per store', () => {
     const extensionId = 'test-id'
 
-    // Chrome: VirusTotal + Chrome-Stats + CRXcavator + ExtensionPedia + OTX = 5 links
+    // Chrome: VirusTotal + Chrome-Stats + ExtensionPedia + OTX = 4 links
     const { rerender } = render(
       <EnrichmentLinks extensionId={extensionId} store="chrome" />
     )
     let allLinks = screen.getAllByRole('link')
-    expect(allLinks).toHaveLength(5)
+    expect(allLinks).toHaveLength(4)
 
     // Firefox: VirusTotal + Source Viewer + Reviews + OTX = 4 links
     rerender(<EnrichmentLinks extensionId={extensionId} store="firefox" />)
     allLinks = screen.getAllByRole('link')
     expect(allLinks).toHaveLength(4)
 
-    // Edge: VirusTotal + CRXcavator + OTX = 3 links
+    // Edge: VirusTotal + OTX = 2 links
     rerender(<EnrichmentLinks extensionId={extensionId} store="edge" />)
     allLinks = screen.getAllByRole('link')
-    expect(allLinks).toHaveLength(3)
+    expect(allLinks).toHaveLength(2)
 
     // Safari: VirusTotal + App Store Page + OTX = 3 links
     rerender(<EnrichmentLinks extensionId={extensionId} store="safari" />)
