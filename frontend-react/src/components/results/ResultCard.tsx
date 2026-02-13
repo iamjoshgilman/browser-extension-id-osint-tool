@@ -10,6 +10,9 @@ import { PermissionBadge } from './PermissionBadge'
 import { ResultMeta } from './ResultMeta'
 import { PermissionsList } from './PermissionsList'
 import { MitreMapping } from './MitreMapping'
+import { BlocklistBanner } from './BlocklistBanner'
+import { RiskVerdictBanner } from './RiskVerdictBanner'
+import { calculateRiskVerdict } from '../../utils/riskVerdict'
 import { DelistedBanner } from './DelistedBanner'
 import { CrossStoreResults } from './CrossStoreResults'
 import { PermissionHistory } from './PermissionHistory'
@@ -56,11 +59,18 @@ export function ResultCard({ extension }: ResultCardProps) {
 
   const hasPermissions = extension.permissions && extension.permissions.length > 0
   const safeStoreUrl = sanitizeUrl(extension.store_url)
+  const verdict = calculateRiskVerdict(extension)
 
   return (
     <div className={styles.card}>
+      <RiskVerdictBanner verdict={verdict} />
+
       {extension.delisted && (
         <DelistedBanner store={extension.store_source} scrapedAt={extension.scraped_at} />
+      )}
+
+      {extension.blocklist_matches && extension.blocklist_matches.length > 0 && (
+        <BlocklistBanner matches={extension.blocklist_matches} />
       )}
 
       <div className={styles.header}>
