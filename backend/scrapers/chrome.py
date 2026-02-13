@@ -45,12 +45,13 @@ class ChromeStoreScraper(ExtensionScraper):
         """Extract permissions from CRX file"""
         crx_url = (
             f"https://clients2.google.com/service/update2/crx"
-            f"?response=redirect&prodversion=130.0&x=id%3D{extension_id}%26installsource%3Dondemand%26uc"
+            f"?response=redirect&acceptformat=crx2,crx3"
+            f"&prodversion=130.0&x=id%3D{extension_id}%26installsource%3Dondemand%26uc"
         )
 
         try:
             logger.info(f"Downloading CRX for {extension_id}")
-            response = self.session.get(crx_url, timeout=10)
+            response = self.session.get(crx_url, timeout=30)
 
             if response.status_code != 200:
                 logger.warning(f"Failed to download CRX: status {response.status_code}")
