@@ -25,9 +25,11 @@ export function useSearch(): UseSearchReturn {
           stores,
           include_permissions: includePermissions,
         })
-        const found = (response.results || []).filter(r => r.found !== false)
-        setResults(found)
-        if (found.length === 0) {
+        const relevant = (response.results || []).filter(
+          r => r.found !== false || (r.blocklist_matches && r.blocklist_matches.length > 0)
+        )
+        setResults(relevant)
+        if (relevant.length === 0) {
           setError(`Extension "${extensionId}" not found in selected stores.`)
         }
       } catch (err) {

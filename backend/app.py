@@ -244,8 +244,24 @@ def search_extension():
     # Check blocklists for this extension
     blocklist_matches = blocklist_manager.check_extension(extension_id)
     if blocklist_matches:
-        for result in results:
-            result["blocklist_matches"] = blocklist_matches
+        if results:
+            for result in results:
+                result["blocklist_matches"] = blocklist_matches
+        else:
+            # Extension not found in any store but is on a blocklist —
+            # create a minimal result so the warning is still shown
+            blocklist_name = blocklist_matches[0].get("name")
+            results.append(
+                {
+                    "extension_id": extension_id,
+                    "name": blocklist_name or extension_id,
+                    "found": False,
+                    "store_source": stores_to_search[0] if stores_to_search else "unknown",
+                    "blocklist_matches": blocklist_matches,
+                    "permissions": [],
+                    "cached": False,
+                }
+            )
 
     # Log the search
     db_manager.log_search(extension_id, found_stores, ip_address, user_agent)
@@ -350,8 +366,22 @@ def bulk_search_extensions():
         # Check blocklists
         blocklist_matches = blocklist_manager.check_extension(ext_id)
         if blocklist_matches:
-            for result in ext_results:
-                result["blocklist_matches"] = blocklist_matches
+            if ext_results:
+                for result in ext_results:
+                    result["blocklist_matches"] = blocklist_matches
+            else:
+                blocklist_name = blocklist_matches[0].get("name")
+                ext_results.append(
+                    {
+                        "extension_id": ext_id,
+                        "name": blocklist_name or ext_id,
+                        "found": False,
+                        "store_source": stores_to_search[0] if stores_to_search else "unknown",
+                        "blocklist_matches": blocklist_matches,
+                        "permissions": [],
+                        "cached": False,
+                    }
+                )
 
         results[ext_id] = ext_results
 

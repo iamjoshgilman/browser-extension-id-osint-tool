@@ -28,12 +28,14 @@ export function useBulkSearch(): UseBulkSearchReturn {
           stores,
           include_permissions: includePermissions,
         })
-        const allFound: ExtensionData[] = []
+        const allRelevant: ExtensionData[] = []
         for (const extResults of Object.values(response.results)) {
-          allFound.push(...extResults.filter(r => r.found !== false))
+          allRelevant.push(...extResults.filter(
+            r => r.found !== false || (r.blocklist_matches && r.blocklist_matches.length > 0)
+          ))
         }
-        setResults(allFound)
-        if (allFound.length === 0) {
+        setResults(allRelevant)
+        if (allRelevant.length === 0) {
           setError('No extensions found in selected stores.')
         }
       } catch (err) {

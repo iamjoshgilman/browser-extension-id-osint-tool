@@ -43,17 +43,19 @@ export function useBulkSearchAsync(): UseBulkSearchAsyncReturn {
   }, [])
 
   const collectResults = useCallback((jobResults: Record<string, any[]>): ExtensionData[] => {
+    const isRelevant = (r: any) =>
+      r.found !== false || (r.blocklist_matches && r.blocklist_matches.length > 0)
     const allFound: ExtensionData[] = []
     for (const storeResults of Object.values(jobResults)) {
       if (typeof storeResults === 'object' && !Array.isArray(storeResults)) {
         // Results are keyed by store: { chrome: {...}, firefox: {...} }
         for (const result of Object.values(storeResults)) {
-          if (result && typeof result === 'object' && (result as any).found !== false) {
+          if (result && typeof result === 'object' && isRelevant(result)) {
             allFound.push(result as ExtensionData)
           }
         }
       } else if (Array.isArray(storeResults)) {
-        allFound.push(...storeResults.filter((r: any) => r.found !== false))
+        allFound.push(...storeResults.filter(isRelevant))
       }
     }
     return allFound
