@@ -24,6 +24,7 @@ class Config:
     API_RATE_LIMIT = os.environ.get("API_RATE_LIMIT", "100/hour")
     API_KEY_REQUIRED = os.environ.get("API_KEY_REQUIRED", "False").lower() == "true"
     API_KEY = os.environ.get("API_KEY", "")
+    ADMIN_API_KEY = os.environ.get("ADMIN_API_KEY", "admin-dev-key-change-me")
 
     # Scraping
     SCRAPER_TIMEOUT = int(os.environ.get("SCRAPER_TIMEOUT", "15"))
@@ -42,6 +43,10 @@ class Config:
 
     # Cache
     REDIS_URL = os.environ.get("REDIS_URL", None)  # Optional Redis for distributed caching
+
+    # Bulk Operations
+    BULK_MAX_WORKERS = int(os.environ.get("BULK_MAX_WORKERS", "6"))
+    BULK_JOB_EXPIRY_HOURS = int(os.environ.get("BULK_JOB_EXPIRY_HOURS", "24"))
 
     @staticmethod
     def init_app(app):

@@ -12,6 +12,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backend'))
 
 from database.manager import DatabaseManager
 from models.extension import ExtensionData
+from models.api_key import ApiKeyData
+import hashlib
 
 
 class TestDatabaseManager(unittest.TestCase):
@@ -409,6 +411,372 @@ class TestDatabaseManager(unittest.TestCase):
         history = self.db_manager.get_extension_history('nonexistent', 'chrome')
         self.assertEqual(history, [])
         self.assertEqual(len(history), 0)
+
+    def test_create_and_get_api_key(self):
+        """Test creating and retrieving API key"""
+        # Create API key
+        key_hash = hashlib.sha256(b"test-key-123").hexdigest()
+        key_id = self.db_manager.create_api_key(
+            key_hash=key_hash,
+            key_prefix="test_",
+            name="Test API Key",
+            description="Test description",
+            created_by="admin@test.com",
+            rate_limit_per_minute=60,
+            rate_limit_per_hour=1000,
+            permissions=["search", "bulk-search"],
+        )
+
+        self.assertIsNotNone(key_id)
+        self.assertGreater(key_id, 0)
+
+        # Retrieve by hash
+        api_key = self.db_manager.get_api_key_by_hash(key_hash)
+        self.assertIsNotNone(api_key)
+        self.assertEqual(api_key.id, key_id)
+        self.assertEqual(api_key.key_hash, key_hash)
+        self.assertEqual(api_key.key_prefix, "test_")
+        self.assertEqual(api_key.name, "Test API Key")
+        self.assertEqual(api_key.description, "Test description")
+        self.assertEqual(api_key.created_by, "admin@test.com")
+        self.assertEqual(api_key.rate_limit_per_minute, 60)
+        self.assertEqual(api_key.rate_limit_per_hour, 1000)
+        self.assertTrue(api_key.is_active)
+        self.assertEqual(api_key.permissions, ["search", "bulk-search"])
+        self.assertIsNone(api_key.revoked_at)
+
+        # Retrieve by ID
+        api_key2 = self.db_manager.get_api_key(key_id)
+        self.assertIsNotNone(api_key2)
+        self.assertEqual(api_key2.id, key_id)
+        self.assertEqual(api_key2.name, "Test API Key")
+
+    def test_list_api_keys(self):
+        """Test listing API keys"""
+        # Create multiple keys
+        key1_hash = hashlib.sha256(b"key1").hexdigest()
+        key2_hash = hashlib.sha256(b"key2").hexdigest()
+        key3_hash = hashlib.sha256(b"key3").hexdigest()
+
+        id1 = self.db_manager.create_api_key(
+            key_hash=key1_hash, key_prefix="k1_", name="Key 1"
+        )
+        id2 = self.db_manager.create_api_key(
+            key_hash=key2_hash, key_prefix="k2_", name="Key 2"
+        )
+        id3 = self.db_manager.create_api_key(
+            key_hash=key3_hash, key_prefix="k3_", name="Key 3"
+        )
+
+        # List all keys
+        keys = self.db_manager.list_api_keys()
+        self.assertEqual(len(keys), 3)
+
+        # Verify all keys are present
+        key_names = [k.name for k in keys]
+        self.assertIn("Key 1", key_names)
+        self.assertIn("Key 2", key_names)
+        self.assertIn("Key 3", key_names)
+
+        # Revoke one key
+        self.db_manager.revoke_api_key(id2)
+
+        # List should now exclude revoked key
+        keys = self.db_manager.list_api_keys()
+        self.assertEqual(len(keys), 2)
+        key_names = [k.name for k in keys]
+        self.assertIn("Key 1", key_names)
+        self.assertIn("Key 3", key_names)
+        self.assertNotIn("Key 2", key_names)
+
+    def test_revoke_api_key(self):
+        """Test revoking an API key"""
+        # Create key
+        key_hash = hashlib.sha256(b"revoke-test").hexdigest()
+        key_id = self.db_manager.create_api_key(
+            key_hash=key_hash, key_prefix="rev_", name="Revoke Test"
+        )
+
+        # Verify it's active
+        api_key = self.db_manager.get_api_key(key_id)
+        self.assertTrue(api_key.is_active)
+        self.assertIsNone(api_key.revoked_at)
+
+        # Revoke it
+        self.db_manager.revoke_api_key(key_id)
+
+        # Verify it's revoked
+        api_key = self.db_manager.get_api_key(key_id)
+        self.assertFalse(api_key.is_active)
+        self.assertIsNotNone(api_key.revoked_at)
+
+        # Verify it's not in list
+        keys = self.db_manager.list_api_keys()
+        self.assertEqual(len(keys), 0)
+
+    def test_update_api_key(self):
+        """Test updating API key"""
+        # Create key
+        key_hash = hashlib.sha256(b"update-test").hexdigest()
+        key_id = self.db_manager.create_api_key(
+            key_hash=key_hash,
+            key_prefix="upd_",
+            name="Original Name",
+            description="Original Description",
+            rate_limit_per_minute=30,
+            rate_limit_per_hour=500,
+        )
+
+        # Update fields
+        self.db_manager.update_api_key(
+            key_id,
+            name="Updated Name",
+            description="Updated Description",
+            rate_limit_per_minute=100,
+            rate_limit_per_hour=2000,
+            is_active=False,
+            permissions=["search"],
+        )
+
+        # Verify updates
+        api_key = self.db_manager.get_api_key(key_id)
+        self.assertEqual(api_key.name, "Updated Name")
+        self.assertEqual(api_key.description, "Updated Description")
+        self.assertEqual(api_key.rate_limit_per_minute, 100)
+        self.assertEqual(api_key.rate_limit_per_hour, 2000)
+        self.assertFalse(api_key.is_active)
+        self.assertEqual(api_key.permissions, ["search"])
+
+    def test_log_and_get_usage(self):
+        """Test logging API usage and retrieving stats"""
+        # Create API key
+        key_hash = hashlib.sha256(b"usage-test").hexdigest()
+        key_id = self.db_manager.create_api_key(
+            key_hash=key_hash, key_prefix="usg_", name="Usage Test"
+        )
+
+        # Log some usage
+        self.db_manager.log_api_usage(
+            api_key_id=key_id,
+            endpoint="/api/search",
+            method="POST",
+            status_code=200,
+            response_time_ms=150,
+            ip_address="127.0.0.1",
+            user_agent="Test Agent",
+        )
+
+        self.db_manager.log_api_usage(
+            api_key_id=key_id,
+            endpoint="/api/bulk-search",
+            method="POST",
+            status_code=200,
+            response_time_ms=350,
+        )
+
+        self.db_manager.log_api_usage(
+            api_key_id=key_id,
+            endpoint="/api/search",
+            method="POST",
+            status_code=400,
+            response_time_ms=50,
+            error_message="Bad request",
+        )
+
+        # Log usage for another key (anonymous)
+        self.db_manager.log_api_usage(
+            api_key_id=None,
+            endpoint="/api/health",
+            method="GET",
+            status_code=200,
+        )
+
+        # Get stats for the specific key
+        stats = self.db_manager.get_usage_stats(key_id=key_id, period_hours=24)
+        self.assertEqual(stats["total_requests"], 3)
+        self.assertEqual(stats["by_endpoint"]["/api/search"], 2)
+        self.assertEqual(stats["by_endpoint"]["/api/bulk-search"], 1)
+        self.assertEqual(stats["by_status"]["200"], 2)
+        self.assertEqual(stats["by_status"]["400"], 1)
+        self.assertEqual(stats["period_hours"], 24)
+        self.assertGreater(stats["avg_response_time_ms"], 0)
+
+        # Get overall stats (all keys)
+        overall_stats = self.db_manager.get_usage_stats(period_hours=24)
+        self.assertEqual(overall_stats["total_requests"], 4)
+        self.assertIn(str(key_id), overall_stats["by_key"])
+        self.assertEqual(overall_stats["by_key"][str(key_id)], 3)
+        self.assertEqual(overall_stats["by_key"]["anonymous"], 1)
+
+        # Get 24h usage for key
+        usage_24h = self.db_manager.get_key_usage_24h(key_id)
+        self.assertEqual(usage_24h, 3)
+
+    def test_bulk_job_lifecycle(self):
+        """Test creating, updating, getting, and cleaning up bulk jobs"""
+        import uuid
+
+        # Create API key for the job
+        key_hash = hashlib.sha256(b"bulk-test").hexdigest()
+        key_id = self.db_manager.create_api_key(
+            key_hash=key_hash, key_prefix="blk_", name="Bulk Test"
+        )
+
+        # Create bulk job
+        job_id = str(uuid.uuid4())
+        extension_ids = ["ext1", "ext2", "ext3"]
+        stores = ["chrome", "firefox"]
+        total_tasks = len(extension_ids) * len(stores)
+
+        returned_id = self.db_manager.create_bulk_job(
+            job_id=job_id,
+            api_key_id=key_id,
+            extension_ids=extension_ids,
+            stores=stores,
+            include_permissions=True,
+            total_tasks=total_tasks,
+        )
+
+        self.assertEqual(returned_id, job_id)
+
+        # Get the job
+        job = self.db_manager.get_bulk_job(job_id)
+        self.assertIsNotNone(job)
+        self.assertEqual(job["id"], job_id)
+        self.assertEqual(job["api_key_id"], key_id)
+        self.assertEqual(job["status"], "pending")
+        self.assertEqual(job["extension_ids"], extension_ids)
+        self.assertEqual(job["stores"], stores)
+        self.assertEqual(job["include_permissions"], True)
+        self.assertEqual(job["total_tasks"], total_tasks)
+        self.assertEqual(job["completed_tasks"], 0)
+        self.assertEqual(job["failed_tasks"], 0)
+        self.assertIsNone(job["results"])
+
+        # Update job to running
+        self.db_manager.update_bulk_job(
+            job_id, status="running", started_at=datetime.now().isoformat()
+        )
+
+        job = self.db_manager.get_bulk_job(job_id)
+        self.assertEqual(job["status"], "running")
+        self.assertIsNotNone(job["started_at"])
+
+        # Update job progress
+        results = {"ext1": {"chrome": {"found": True}}}
+        self.db_manager.update_bulk_job(
+            job_id, completed_tasks=1, results=results
+        )
+
+        job = self.db_manager.get_bulk_job(job_id)
+        self.assertEqual(job["completed_tasks"], 1)
+        self.assertIsNotNone(job["results"])
+        self.assertEqual(job["results"]["ext1"]["chrome"]["found"], True)
+
+        # Complete the job
+        final_results = {
+            "ext1": {"chrome": {"found": True}, "firefox": {"found": False}},
+            "ext2": {"chrome": {"found": True}, "firefox": {"found": True}},
+            "ext3": {"chrome": {"found": False}, "firefox": {"found": False}},
+        }
+        self.db_manager.update_bulk_job(
+            job_id,
+            status="completed",
+            completed_tasks=total_tasks,
+            failed_tasks=0,
+            results=final_results,
+            completed_at=datetime.now().isoformat(),
+        )
+
+        job = self.db_manager.get_bulk_job(job_id)
+        self.assertEqual(job["status"], "completed")
+        self.assertEqual(job["completed_tasks"], total_tasks)
+        self.assertIsNotNone(job["completed_at"])
+        self.assertEqual(len(job["results"]), 3)
+
+        # Cleanup old jobs (should not delete this one yet as it's recent)
+        deleted = self.db_manager.cleanup_old_bulk_jobs(hours=24)
+        self.assertEqual(deleted, 0)
+
+        # Verify job still exists
+        job = self.db_manager.get_bulk_job(job_id)
+        self.assertIsNotNone(job)
+
+        # Cleanup with 0 hours (should delete completed jobs immediately)
+        deleted = self.db_manager.cleanup_old_bulk_jobs(hours=0)
+        self.assertEqual(deleted, 1)
+
+        # Verify job is gone
+        job = self.db_manager.get_bulk_job(job_id)
+        self.assertIsNone(job)
+
+    def test_bulk_job_cleanup(self):
+        """Test bulk job cleanup removes only old completed/failed jobs"""
+        import uuid
+
+        # Create multiple jobs with different statuses
+        job1_id = str(uuid.uuid4())
+        job2_id = str(uuid.uuid4())
+        job3_id = str(uuid.uuid4())
+
+        # Create jobs
+        self.db_manager.create_bulk_job(
+            job_id=job1_id,
+            api_key_id=None,
+            extension_ids=["ext1"],
+            stores=["chrome"],
+            include_permissions=False,
+            total_tasks=1,
+        )
+
+        self.db_manager.create_bulk_job(
+            job_id=job2_id,
+            api_key_id=None,
+            extension_ids=["ext2"],
+            stores=["firefox"],
+            include_permissions=False,
+            total_tasks=1,
+        )
+
+        self.db_manager.create_bulk_job(
+            job_id=job3_id,
+            api_key_id=None,
+            extension_ids=["ext3"],
+            stores=["edge"],
+            include_permissions=False,
+            total_tasks=1,
+        )
+
+        # Complete job1 and job2, leave job3 running
+        self.db_manager.update_bulk_job(
+            job1_id,
+            status="completed",
+            completed_at=datetime.now().isoformat(),
+        )
+
+        self.db_manager.update_bulk_job(
+            job2_id,
+            status="failed",
+            completed_at=datetime.now().isoformat(),
+        )
+
+        self.db_manager.update_bulk_job(
+            job3_id,
+            status="running",
+        )
+
+        # Cleanup with 0 hours should delete job1 and job2 but not job3
+        deleted = self.db_manager.cleanup_old_bulk_jobs(hours=0)
+        self.assertEqual(deleted, 2)
+
+        # Verify job3 still exists
+        job3 = self.db_manager.get_bulk_job(job3_id)
+        self.assertIsNotNone(job3)
+        self.assertEqual(job3["status"], "running")
+
+        # Verify job1 and job2 are gone
+        self.assertIsNone(self.db_manager.get_bulk_job(job1_id))
+        self.assertIsNone(self.db_manager.get_bulk_job(job2_id))
 
 
 if __name__ == '__main__':

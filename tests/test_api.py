@@ -200,3 +200,101 @@ def test_extension_history_empty(client):
     assert data['total_snapshots'] == 0
     assert 'has_permission_changes' in data
     assert data['has_permission_changes'] == False
+
+def test_async_bulk_search_submit(client):
+    """Test submitting async bulk search job"""
+    response = client.post('/api/bulk-search-async',
+                          json={
+                              'extension_ids': ['cjpalhdlnbpafiamejdnhcphjbkeiagm'],
+                              'stores': ['chrome']
+                          })
+    assert response.status_code == 202
+    data = json.loads(response.data)
+    assert 'job_id' in data
+    assert 'status' in data
+    assert data['status'] == 'pending'
+    assert 'total_tasks' in data
+    assert data['total_tasks'] == 1
+    assert 'poll_url' in data
+    assert 'stream_url' in data
+
+def test_async_bulk_search_missing_ids(client):
+    """Test async bulk search without extension_ids"""
+    response = client.post('/api/bulk-search-async',
+                          json={
+                              'stores': ['chrome']
+                          })
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert 'error' in data
+
+def test_async_bulk_search_too_many_ids(client):
+    """Test async bulk search with too many extension IDs"""
+    ids = ['test' + str(i) for i in range(51)]
+    response = client.post('/api/bulk-search-async',
+                          json={
+                              'extension_ids': ids,
+                              'stores': ['chrome']
+                          })
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert 'error' in data
+
+def test_async_bulk_search_status(client):
+    """Test getting async bulk search status"""
+    # Submit job
+    response = client.post('/api/bulk-search-async',
+                          json={
+                              'extension_ids': ['cjpalhdlnbpafiamejdnhcphjbkeiagm'],
+                              'stores': ['chrome']
+                          })
+    assert response.status_code == 202
+    data = json.loads(response.data)
+    job_id = data['job_id']
+
+    # Get status
+    response = client.get(f'/api/bulk-search-async/{job_id}')
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert 'job_id' in data
+    assert data['job_id'] == job_id
+    assert 'status' in data
+    assert 'total_tasks' in data
+    assert 'completed_tasks' in data
+    assert 'failed_tasks' in data
+    assert 'progress_pct' in data
+
+def test_async_bulk_search_status_not_found(client):
+    """Test getting status for non-existent job"""
+    response = client.get('/api/bulk-search-async/nonexistent-job-id')
+    assert response.status_code == 404
+    data = json.loads(response.data)
+    assert 'error' in data
+
+def test_async_bulk_search_cancel(client):
+    """Test cancelling async bulk search job"""
+    # Submit job
+    response = client.post('/api/bulk-search-async',
+                          json={
+                              'extension_ids': ['test1', 'test2', 'test3'],
+                              'stores': ['chrome', 'firefox', 'edge']
+                          })
+    assert response.status_code == 202
+    data = json.loads(response.data)
+    job_id = data['job_id']
+
+    # Cancel job
+    response = client.delete(f'/api/bulk-search-async/{job_id}')
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert 'job_id' in data
+    assert data['job_id'] == job_id
+    assert 'status' in data
+    assert data['status'] == 'cancelled'
+
+def test_async_bulk_search_cancel_not_found(client):
+    """Test cancelling non-existent job"""
+    response = client.delete('/api/bulk-search-async/nonexistent-job-id')
+    assert response.status_code == 404
+    data = json.loads(response.data)
+    assert 'error' in data

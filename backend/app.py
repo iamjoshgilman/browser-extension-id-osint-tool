@@ -3,7 +3,10 @@ Flask API for Browser Extension OSINT Tool
 """
 import os
 import logging
-from flask import Flask, jsonify, request
+import uuid
+import threading
+from datetime import datetime
+from flask import Flask, jsonify, request, Response, stream_with_context
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -15,6 +18,7 @@ from database.manager import DatabaseManager
 from scrapers.chrome import ChromeStoreScraper
 from scrapers.firefox import FirefoxAddonsScraper
 from scrapers.edge import EdgeAddonsScraper
+from services.bulk_executor import BulkSearchExecutor
 from config import get_config
 
 # Configure logging
@@ -60,6 +64,16 @@ scrapers = {
     "firefox": FirefoxAddonsScraper(),
     "edge": EdgeAddonsScraper(),
 }
+
+# Scraper classes for bulk executor (need fresh instances per thread)
+SCRAPER_CLASSES = {
+    "chrome": ChromeStoreScraper,
+    "firefox": FirefoxAddonsScraper,
+    "edge": EdgeAddonsScraper,
+}
+
+# Active bulk jobs
+active_jobs = {}  # job_id -> BulkSearchExecutor
 
 
 # API key validation decorator
@@ -429,6 +443,224 @@ def get_extension_history(extension_id):
     except Exception as e:
         logger.error(f"Error getting extension history: {e}")
         return jsonify({"error": "Failed to retrieve extension history"}), 500
+
+
+@app.route("/api/bulk-search-async", methods=["POST"])
+@limiter.limit("5 per minute")
+@require_api_key
+def bulk_search_async():
+    """Submit a bulk search job for async processing"""
+    data = request.get_json()
+
+    if not data:
+        return jsonify({"error": "Invalid JSON data"}), 400
+
+    extension_ids = data.get("extension_ids", [])
+    stores = data.get("stores", ["chrome", "firefox", "edge"])
+    include_permissions = data.get("include_permissions", False)
+
+    if not extension_ids:
+        return jsonify({"error": "Extension IDs are required"}), 400
+
+    if len(extension_ids) > 50:
+        return jsonify({"error": "Maximum 50 extensions per bulk search"}), 400
+
+    # Validate stores
+    valid_stores = [s for s in stores if s in SCRAPER_CLASSES]
+    if not valid_stores:
+        return jsonify({"error": "No valid stores specified"}), 400
+
+    # Generate job ID
+    job_id = str(uuid.uuid4())
+
+    # Calculate total tasks
+    total_tasks = len(extension_ids) * len(valid_stores)
+
+    # Create job in database
+    db_manager.create_bulk_job(
+        job_id=job_id,
+        api_key_id=None,  # Could track API key if needed
+        extension_ids=extension_ids,
+        stores=valid_stores,
+        include_permissions=include_permissions,
+        total_tasks=total_tasks,
+    )
+
+    # Create executor
+    executor = BulkSearchExecutor(
+        db_manager=db_manager,
+        scraper_classes=SCRAPER_CLASSES,
+        max_workers=config.BULK_MAX_WORKERS,
+    )
+
+    # Store executor
+    active_jobs[job_id] = executor
+
+    # Start execution in background thread
+    thread = threading.Thread(
+        target=executor.execute,
+        args=(job_id, extension_ids, valid_stores, include_permissions),
+        daemon=True,
+    )
+    thread.start()
+
+    logger.info(f"Started bulk job {job_id} with {total_tasks} tasks")
+
+    return (
+        jsonify(
+            {
+                "job_id": job_id,
+                "status": "pending",
+                "total_tasks": total_tasks,
+                "poll_url": f"/api/bulk-search-async/{job_id}",
+                "stream_url": f"/api/bulk-search-async/{job_id}/stream",
+            }
+        ),
+        202,
+    )
+
+
+# Set unique name for decorated function
+bulk_search_async.__name__ = "api_key_bulk_search_async"
+
+
+@app.route("/api/bulk-search-async/<job_id>", methods=["GET"])
+@limiter.limit("60 per minute")
+def get_bulk_job_status(job_id):
+    """Get status of a bulk search job"""
+    job = db_manager.get_bulk_job(job_id)
+
+    if not job:
+        return jsonify({"error": "Job not found"}), 404
+
+    # Calculate progress percentage
+    progress_pct = 0
+    if job["total_tasks"] > 0:
+        progress_pct = round((job["completed_tasks"] / job["total_tasks"]) * 100, 2)
+
+    # Calculate elapsed time
+    elapsed_seconds = None
+    if job["started_at"]:
+        started = datetime.fromisoformat(job["started_at"])
+        if job["completed_at"]:
+            completed = datetime.fromisoformat(job["completed_at"])
+            elapsed_seconds = (completed - started).total_seconds()
+        else:
+            elapsed_seconds = (datetime.now() - started).total_seconds()
+
+    return jsonify(
+        {
+            "job_id": job["id"],
+            "status": job["status"],
+            "total_tasks": job["total_tasks"],
+            "completed_tasks": job["completed_tasks"],
+            "failed_tasks": job["failed_tasks"],
+            "progress_pct": progress_pct,
+            "results": job["results"],
+            "error_message": job.get("error_message"),
+            "started_at": job["started_at"],
+            "completed_at": job.get("completed_at"),
+            "elapsed_seconds": elapsed_seconds,
+        }
+    )
+
+
+@app.route("/api/bulk-search-async/<job_id>/stream", methods=["GET"])
+def stream_bulk_job(job_id):
+    """Stream progress updates via Server-Sent Events"""
+    # Check if job exists
+    job = db_manager.get_bulk_job(job_id)
+    if not job:
+        return jsonify({"error": "Job not found"}), 404
+
+    # Get executor for this job
+    executor = active_jobs.get(job_id)
+    if not executor:
+        # Job exists but no executor - might be completed or old
+        return jsonify({"error": "Job stream not available"}), 410
+
+    def generate():
+        """Generate SSE events from result queue"""
+        try:
+            while True:
+                try:
+                    # Wait for events with timeout
+                    event = executor.result_queue.get(timeout=1)
+
+                    if event["type"] == "progress":
+                        # Progress event
+                        yield f"event: progress\n"
+                        yield f"data: {jsonify(event).get_data(as_text=True)}\n\n"
+
+                    elif event["type"] == "error":
+                        # Error event
+                        yield f"event: error\n"
+                        yield f"data: {jsonify(event).get_data(as_text=True)}\n\n"
+
+                    elif event["type"] == "complete":
+                        # Completion event
+                        yield f"event: complete\n"
+                        yield f"data: {jsonify(event).get_data(as_text=True)}\n\n"
+                        break
+
+                except Exception:
+                    # Timeout or other error - check job status
+                    current_job = db_manager.get_bulk_job(job_id)
+                    if current_job and current_job["status"] in [
+                        "completed",
+                        "failed",
+                        "cancelled",
+                    ]:
+                        # Job finished
+                        yield f"event: complete\n"
+                        status_json = jsonify({"status": current_job["status"]})
+                        yield f"data: {status_json.get_data(as_text=True)}\n\n"
+                        break
+
+        except GeneratorExit:
+            logger.info(f"SSE stream closed for job {job_id}")
+
+    return Response(
+        stream_with_context(generate()),
+        content_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",  # Disable nginx buffering
+        },
+    )
+
+
+@app.route("/api/bulk-search-async/<job_id>", methods=["DELETE"])
+def cancel_bulk_job(job_id):
+    """Cancel a running bulk search job"""
+    job = db_manager.get_bulk_job(job_id)
+
+    if not job:
+        return jsonify({"error": "Job not found"}), 404
+
+    if job["status"] in ["completed", "failed", "cancelled"]:
+        return (
+            jsonify(
+                {
+                    "error": f"Job already {job['status']}",
+                    "status": job["status"],
+                }
+            ),
+            400,
+        )
+
+    # Get executor and set cancel flag
+    executor = active_jobs.get(job_id)
+    if executor:
+        executor.cancel()
+
+    # Update job status
+    db_manager.update_bulk_job(job_id, status="cancelled")
+
+    logger.info(f"Cancelled bulk job {job_id}")
+
+    return jsonify({"job_id": job_id, "status": "cancelled"})
 
 
 @app.errorhandler(404)
