@@ -1,0 +1,85 @@
+.container {
+  margin-top: 12px;
+}
+
+.toggleBtn {
+  background: transparent;
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85em;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.toggleBtn:hover {
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
+}
+
+.arrow {
+  font-size: 0.7em;
+  transition: transform 0.15s ease;
+}
+
+.arrowUp {
+  transform: rotate(180deg);
+}
+
+.list {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 6px 8px;
+  background-color: var(--bg-surface);
+  border-radius: 6px;
+  border: 1px solid var(--border-muted);
+}
+
+.techniqueId {
+  display: inline-block;
+  padding: 2px 8px;
+  background-color: var(--risk-critical-bg);
+  color: var(--risk-critical-text);
+  border-radius: 4px;
+  font-size: 0.8em;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.techniqueId:hover {
+  background-color: var(--risk-critical-border);
+  text-decoration: none;
+}
+
+.techniqueName {
+  font-size: 0.85em;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.tacticBadge {
+  display: inline-block;
+  padding: 2px 8px;
+  background-color: var(--accent-purple);
+  color: var(--bg-primary);
+  border-radius: 10px;
+  font-size: 0.75em;
+  font-weight: 600;
+  white-space: nowrap;
+}

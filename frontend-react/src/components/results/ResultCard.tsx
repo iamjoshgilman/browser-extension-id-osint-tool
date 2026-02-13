@@ -9,6 +9,7 @@ import { CachedBadge } from './CachedBadge'
 import { PermissionBadge } from './PermissionBadge'
 import { ResultMeta } from './ResultMeta'
 import { PermissionsList } from './PermissionsList'
+import { MitreMapping } from './MitreMapping'
 import { DelistedBanner } from './DelistedBanner'
 import { CrossStoreResults } from './CrossStoreResults'
 import { PermissionHistory } from './PermissionHistory'
@@ -81,6 +82,8 @@ export function ResultCard({ extension }: ResultCardProps) {
       <ResultMeta extension={extension} />
 
       <PermissionsList permissions={extension.permissions || []} />
+
+      {hasPermissions && <MitreMapping permissions={extension.permissions} />}
 
       {extension.description && (
         <div className={styles.description}>{extension.description}</div>
