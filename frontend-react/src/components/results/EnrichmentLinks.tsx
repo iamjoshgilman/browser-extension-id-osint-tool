@@ -29,6 +29,16 @@ export function EnrichmentLinks({ extensionId, store }: EnrichmentLinksProps) {
       url: `https://chrome-stats.com/d/${encodedId}`,
       description: 'Statistics and history',
     })
+    links.push({
+      label: 'CRXcavator',
+      url: `https://crxcavator.io/report/${encodedId}`,
+      description: 'CRXcavator risk assessment',
+    })
+    links.push({
+      label: 'ExtensionPedia',
+      url: `https://extensionpedia.layerxsecurity.com/extensions/${encodedId}`,
+      description: 'Extension intelligence database',
+    })
   }
 
   // Firefox-specific links
@@ -45,6 +55,15 @@ export function EnrichmentLinks({ extensionId, store }: EnrichmentLinksProps) {
     })
   }
 
+  // Edge-specific links
+  if (store === 'edge') {
+    links.push({
+      label: 'CRXcavator',
+      url: `https://crxcavator.io/report/${encodedId}`,
+      description: 'CRXcavator risk assessment',
+    })
+  }
+
   // Safari-specific links
   if (store === 'safari') {
     links.push({
@@ -54,7 +73,12 @@ export function EnrichmentLinks({ extensionId, store }: EnrichmentLinksProps) {
     })
   }
 
-  // Edge has no store-specific links beyond VirusTotal
+  // OTX AlienVault - available for all stores
+  links.push({
+    label: 'OTX AlienVault',
+    url: `https://otx.alienvault.com/indicator/search/${encodedId}`,
+    description: 'Open Threat Exchange indicators',
+  })
 
   return (
     <div className={styles.container}>
