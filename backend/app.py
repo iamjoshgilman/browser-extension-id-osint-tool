@@ -25,6 +25,7 @@ from scrapers.firefox import FirefoxAddonsScraper
 from scrapers.edge import EdgeAddonsScraper
 from scrapers.safari import SafariExtensionScraper
 from services.bulk_executor import BulkSearchExecutor
+from services.blocklist_manager import BlocklistManager
 from config import get_config
 
 # Configure logging
@@ -56,11 +57,7 @@ if config.REDIS_URL:
         default_limits=["100 per hour"],
     )
 else:
-    limiter = Limiter(
-        app=app,
-        key_func=get_remote_address,
-        default_limits=["100 per hour"]
-    )
+    limiter = Limiter(app=app, key_func=get_remote_address, default_limits=["100 per hour"])
 
 # Initialize cache
 cache = Cache(app, config={"CACHE_TYPE": "simple"})
@@ -87,6 +84,20 @@ SCRAPER_CLASSES = {
 # Active bulk jobs
 active_jobs = {}  # job_id -> BulkSearchExecutor
 MAX_ACTIVE_JOBS = 100
+
+# Initialize blocklist manager
+blocklist_manager = BlocklistManager()
+
+
+# Refresh blocklists in background thread on startup
+def _init_blocklists():
+    try:
+        blocklist_manager.refresh_blocklists()
+    except Exception as e:
+        logger.error(f"Initial blocklist refresh failed: {e}")
+
+
+threading.Thread(target=_init_blocklists, daemon=True).start()
 
 
 def cleanup_completed_jobs():
@@ -230,6 +241,12 @@ def search_extension():
                 logger.error(f"Error scraping {store} for {extension_id}: {e}")
                 # Don't include error results in the response
 
+    # Check blocklists for this extension
+    blocklist_matches = blocklist_manager.check_extension(extension_id)
+    if blocklist_matches:
+        for result in results:
+            result["blocklist_matches"] = blocklist_matches
+
     # Log the search
     db_manager.log_search(extension_id, found_stores, ip_address, user_agent)
 
@@ -329,6 +346,12 @@ def bulk_search_extensions():
                             logger.info(f"Extension {ext_id} marked as delisted in {store}")
                 except Exception as e:
                     logger.error(f"Error in bulk search for {ext_id} in {store}: {e}")
+
+        # Check blocklists
+        blocklist_matches = blocklist_manager.check_extension(ext_id)
+        if blocklist_matches:
+            for result in ext_results:
+                result["blocklist_matches"] = blocklist_matches
 
         results[ext_id] = ext_results
 
@@ -436,11 +459,9 @@ def cleanup_cache():
             f"Cleaned up {deleted} old cache entries and "
             f"{history_deleted} search history entries"
         )
-        return jsonify({
-            "message": message,
-            "cache_deleted": deleted,
-            "history_deleted": history_deleted
-        })
+        return jsonify(
+            {"message": message, "cache_deleted": deleted, "history_deleted": history_deleted}
+        )
     except Exception as e:
         logger.error(f"Error cleaning cache: {e}")
         return jsonify({"error": "Failed to clean cache"}), 500
@@ -460,9 +481,7 @@ def get_extension_history(extension_id):
 
     if store not in ["chrome", "firefox", "edge", "safari"]:
         return (
-            jsonify(
-                {"error": "Invalid store. Must be one of: chrome, firefox, edge, safari"}
-            ),
+            jsonify({"error": "Invalid store. Must be one of: chrome, firefox, edge, safari"}),
             400,
         )
 
@@ -500,13 +519,9 @@ def get_extension_history(extension_id):
                     "added": added,
                     "removed": removed,
                     "version_changed": version_changed,
-                    "previous_version": (
-                        prev_snapshot["version"] if version_changed else None
-                    ),
+                    "previous_version": (prev_snapshot["version"] if version_changed else None),
                     "name_changed": name_changed,
-                    "previous_name": (
-                        prev_snapshot["name"] if name_changed else None
-                    ),
+                    "previous_name": (prev_snapshot["name"] if name_changed else None),
                 }
 
             enhanced_snapshots.append(enhanced_snapshot)
@@ -771,6 +786,13 @@ def cancel_bulk_job(job_id):
     logger.info(f"Cancelled bulk job {job_id}")
 
     return jsonify({"job_id": job_id, "status": "cancelled"})
+
+
+@app.route("/api/blocklist/status", methods=["GET"])
+def blocklist_status():
+    """Get blocklist service status"""
+    status = blocklist_manager.get_status()
+    return jsonify(status)
 
 
 @app.errorhandler(404)

@@ -23,7 +23,7 @@ build/
 *.db
 *.sqlite
 *.sqlite3
-data/
+/data/
 
 # Logs
 logs/

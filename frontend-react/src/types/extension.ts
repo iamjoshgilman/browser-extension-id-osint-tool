@@ -19,6 +19,7 @@ export interface ExtensionData {
   cached: boolean
   scraped_at: string | null
   delisted?: boolean
+  blocklist_matches?: Array<{ source: string; url: string; name?: string }>
 
   // SOC-relevant fields
   content_rating?: string
