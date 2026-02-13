@@ -10,6 +10,14 @@ interface BlocklistBannerProps {
   matches: BlocklistMatch[]
 }
 
+function getResourceName(url: string): string {
+  try {
+    return new URL(url).hostname.replace('www.', '').replace('.com', '').replace('.org', '')
+  } catch {
+    return 'Source'
+  }
+}
+
 export function BlocklistBanner({ matches }: BlocklistBannerProps) {
   if (!matches || matches.length === 0) return null
 
@@ -30,9 +38,9 @@ export function BlocklistBanner({ matches }: BlocklistBannerProps) {
               target="_blank"
               rel="noopener noreferrer"
               className={styles.sourceLink}
-              title={`Source: ${match.source}`}
+              title={match.url}
             >
-              Threat Intel &rarr;
+              Threat Intel - {getResourceName(match.url)}
             </a>
           ))}
         </div>
