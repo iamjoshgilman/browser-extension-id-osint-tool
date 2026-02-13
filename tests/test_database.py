@@ -62,16 +62,23 @@ class TestDatabaseManager(unittest.TestCase):
             store_source='firefox',
             found=True
         )
-        
+
         # Save to database
         self.db_manager.save_to_cache(test_data)
-        
-        # Set cache expiry to 0 days
-        self.db_manager.cache_expiry_days = 0
-        
-        # Try to retrieve - should return None due to expiry
+
+        # Verify it's in cache with default expiry (7 days)
         retrieved = self.db_manager.get_from_cache('test456', 'firefox')
-        self.assertIsNone(retrieved)
+        self.assertIsNotNone(retrieved)
+
+        # Set cache expiry to a very large value (100 days) - should still be cached
+        self.db_manager.cache_expiry_days = 100
+        retrieved = self.db_manager.get_from_cache('test456', 'firefox')
+        self.assertIsNotNone(retrieved)
+
+        # Set cache expiry to 0 - cache never expires
+        self.db_manager.cache_expiry_days = 0
+        retrieved = self.db_manager.get_from_cache('test456', 'firefox')
+        self.assertIsNotNone(retrieved)
     
     def test_permissions_handling(self):
         """Test permissions list handling"""

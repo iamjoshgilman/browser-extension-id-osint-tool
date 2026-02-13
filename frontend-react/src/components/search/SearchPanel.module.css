@@ -6,6 +6,27 @@
   margin-bottom: 30px;
 }
 
+.optionsRow {
+  margin: 16px 0;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ctp-text);
+  font-size: 0.95em;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--ctp-lavender);
+}
+
 .searchBtn {
   padding: 12px 30px;
   background-color: var(--ctp-lavender);

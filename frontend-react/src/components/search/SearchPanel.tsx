@@ -6,8 +6,8 @@ import { StoreSelector } from './StoreSelector'
 import styles from './SearchPanel.module.css'
 
 interface SearchPanelProps {
-  onSingleSearch: (extensionId: string, stores: string[]) => void
-  onBulkSearch: (extensionIds: string[], stores: string[]) => void
+  onSingleSearch: (extensionId: string, stores: string[], includePermissions: boolean) => void
+  onBulkSearch: (extensionIds: string[], stores: string[], includePermissions: boolean) => void
   loading: boolean
 }
 
@@ -16,19 +16,20 @@ export function SearchPanel({ onSingleSearch, onBulkSearch, loading }: SearchPan
   const [singleId, setSingleId] = useState('')
   const [bulkIds, setBulkIds] = useState('')
   const [stores, setStores] = useState(['chrome', 'firefox', 'edge'])
+  const [includePermissions, setIncludePermissions] = useState(false)
 
   const handleSearch = () => {
     if (stores.length === 0) return
 
     if (mode === 'single') {
       const id = singleId.trim()
-      if (id) onSingleSearch(id, stores)
+      if (id) onSingleSearch(id, stores, includePermissions)
     } else {
       const ids = bulkIds
         .split('\n')
         .map(id => id.trim())
         .filter(id => id.length > 0)
-      if (ids.length > 0) onBulkSearch(ids, stores)
+      if (ids.length > 0) onBulkSearch(ids, stores, includePermissions)
     }
   }
 
@@ -52,6 +53,18 @@ export function SearchPanel({ onSingleSearch, onBulkSearch, loading }: SearchPan
       )}
 
       <StoreSelector selected={stores} onChange={setStores} />
+
+      <div className={styles.optionsRow}>
+        <label className={styles.checkboxLabel}>
+          <input
+            type="checkbox"
+            checked={includePermissions}
+            onChange={(e) => setIncludePermissions(e.target.checked)}
+            className={styles.checkbox}
+          />
+          <span>Extract Chrome permissions (slower)</span>
+        </label>
+      </div>
 
       <button
         className={styles.searchBtn}

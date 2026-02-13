@@ -8,6 +8,7 @@ from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_caching import Cache
+from urllib.parse import quote as requests_quote
 
 # Import components
 from database.manager import DatabaseManager
@@ -18,8 +19,7 @@ from config import get_config
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -38,182 +38,294 @@ CORS(app, origins=config.CORS_ORIGINS)
 # Initialize rate limiter with Redis storage if available
 if config.REDIS_URL:
     from flask_limiter.storage import RedisStorage
+
     limiter = Limiter(
         app=app,
         key_func=get_remote_address,
         storage_uri=config.REDIS_URL,
-        default_limits=["100 per hour"]
+        default_limits=["100 per hour"],
     )
 else:
-    limiter = Limiter(
-        app=app,
-        key_func=get_remote_address,
-        default_limits=["100 per hour"]
-    )
+    limiter = Limiter(app=app, key_func=get_remote_address, default_limits=["100 per hour"])
 
 # Initialize cache
-cache = Cache(app, config={'CACHE_TYPE': 'simple'})
+cache = Cache(app, config={"CACHE_TYPE": "simple"})
 
 # Initialize database manager
 db_manager = DatabaseManager()
 
 # Initialize scrapers
 scrapers = {
-    'chrome': ChromeStoreScraper(),
-    'firefox': FirefoxAddonsScraper(),
-    'edge': EdgeAddonsScraper()
+    "chrome": ChromeStoreScraper(),
+    "firefox": FirefoxAddonsScraper(),
+    "edge": EdgeAddonsScraper(),
 }
+
 
 # API key validation decorator
 def require_api_key(f):
     """Decorator to require API key for protected endpoints"""
+
     def decorated_function(*args, **kwargs):
         # Check the environment variable directly each time
-        api_key_required = os.environ.get('API_KEY_REQUIRED', 'False').lower() == 'true'
-        
+        api_key_required = os.environ.get("API_KEY_REQUIRED", "False").lower() == "true"
+
         if not api_key_required:
             return f(*args, **kwargs)
-        
-        api_key = request.headers.get('X-API-Key') or request.args.get('api_key')
-        
-        if not api_key or api_key != config.API_KEY:
-            return jsonify({'error': 'Invalid or missing API key'}), 401
-        
+
+        api_key = request.headers.get("X-API-Key") or request.args.get("api_key")
+
+        # Use app.config instead of module-level config for testability
+        if not api_key or api_key != app.config.get("API_KEY", config.API_KEY):
+            return jsonify({"error": "Invalid or missing API key"}), 401
+
         return f(*args, **kwargs)
-    
+
     # IMPORTANT: Set a unique name for the decorated function
-    decorated_function.__name__ = f'api_key_{f.__name__}'
+    decorated_function.__name__ = f"api_key_{f.__name__}"
     return decorated_function
 
-@app.route('/api/health', methods=['GET'])
+
+@app.route("/api/health", methods=["GET"])
 def health_check():
     """Health check endpoint"""
-    return jsonify({
-        'status': 'healthy',
-        'version': config.VERSION,
-        'database': os.path.exists(config.DATABASE_PATH)
-    })
+    return jsonify(
+        {
+            "status": "healthy",
+            "version": config.VERSION,
+            "database": os.path.exists(config.DATABASE_PATH),
+        }
+    )
 
-@app.route('/api/search', methods=['POST'])
+
+@app.route("/api/search", methods=["POST"])
 @limiter.limit("30 per minute")
 @require_api_key
 def search_extension():
     """Search for a browser extension"""
     data = request.get_json()
-    
+
     if not data:
-        return jsonify({'error': 'Invalid JSON data'}), 400
-    
-    extension_id = data.get('extension_id', '').strip()
-    stores = data.get('stores', ['chrome', 'firefox', 'edge'])
-    
+        return jsonify({"error": "Invalid JSON data"}), 400
+
+    extension_id = data.get("extension_id", "").strip()
+    stores = data.get("stores", ["chrome", "firefox", "edge"])
+    include_permissions = data.get("include_permissions", False)
+
     if not extension_id:
-        return jsonify({'error': 'Extension ID is required'}), 400
-    
+        return jsonify({"error": "Extension ID is required"}), 400
+
     # Log the search
     ip_address = request.remote_addr
-    user_agent = request.headers.get('User-Agent', '')
-    
+    user_agent = request.headers.get("User-Agent", "")
+
     results = []
     found_stores = []
-    
+
     # Search all requested stores - let each scraper handle validation
     stores_to_search = [s for s in stores if s in scrapers]
-    
+
     for store in stores_to_search:
         # Check cache first
         cached_data = db_manager.get_from_cache(extension_id, store)
-        
+
         if cached_data:
             # Only include if it was actually found
             if cached_data.found:
                 cached_data.cached = True
                 results.append(cached_data.to_dict())
                 found_stores.append(store)
+            else:
+                # Cache shows not found - check if it was previously found (delisted)
+                previous_cache = db_manager.get_previous_found_entry(extension_id, store)
+                if previous_cache:
+                    result_dict = previous_cache.to_dict()
+                    result_dict["delisted"] = True
+                    result_dict["cached"] = True
+                    results.append(result_dict)
+                    logger.info(f"Extension {extension_id} marked as delisted in {store}")
             logger.info(f"Cache hit for {extension_id} in {store} (found: {cached_data.found})")
         else:
             # Scrape if not in cache
             try:
                 scraper = scrapers[store]
-                extension_data = scraper.scrape(extension_id)
-                
+                # Pass include_permissions only to Chrome scraper
+                if store == "chrome":
+                    extension_data = scraper.scrape(
+                        extension_id, include_permissions=include_permissions
+                    )
+                else:
+                    extension_data = scraper.scrape(extension_id)
+
                 if extension_data:
+                    # Check for delisted BEFORE saving (save overwrites old entry)
+                    previous_cache = None
+                    if not extension_data.found:
+                        previous_cache = db_manager.get_previous_found_entry(extension_id, store)
+
                     # Save to cache regardless of found status
                     db_manager.save_to_cache(extension_data)
                     # Only include in results if actually found
                     if extension_data.found:
                         results.append(extension_data.to_dict())
                         found_stores.append(store)
-                    logger.info(f"Scraped {extension_id} from {store} (found: {extension_data.found})")
+                    elif previous_cache:
+                        # Extension was previously found but now gone = delisted
+                        result_dict = previous_cache.to_dict()
+                        result_dict["delisted"] = True
+                        result_dict["cached"] = True
+                        results.append(result_dict)
+                        logger.info(f"Extension {extension_id} marked as delisted in {store}")
+                    logger.info(
+                        f"Scraped {extension_id} from {store} (found: {extension_data.found})"
+                    )
             except Exception as e:
                 logger.error(f"Error scraping {store} for {extension_id}: {e}")
                 # Don't include error results in the response
-    
+
     # Log the search
     db_manager.log_search(extension_id, found_stores, ip_address, user_agent)
-    
-    return jsonify({
-        'extension_id': extension_id,
-        'results': results
-    })
 
-@app.route('/api/bulk-search', methods=['POST'])
+    return jsonify({"extension_id": extension_id, "results": results})
+
+
+@app.route("/api/bulk-search", methods=["POST"])
 @limiter.limit("10 per minute")
 @require_api_key
 def bulk_search_extensions():
     """Bulk search for multiple extensions"""
     data = request.get_json()
-    
+
     if not data:
-        return jsonify({'error': 'Invalid JSON data'}), 400
-    
-    extension_ids = data.get('extension_ids', [])
-    stores = data.get('stores', ['chrome', 'firefox', 'edge'])
-    
+        return jsonify({"error": "Invalid JSON data"}), 400
+
+    extension_ids = data.get("extension_ids", [])
+    stores = data.get("stores", ["chrome", "firefox", "edge"])
+    include_permissions = data.get("include_permissions", False)
+
     if not extension_ids:
-        return jsonify({'error': 'Extension IDs are required'}), 400
-    
+        return jsonify({"error": "Extension IDs are required"}), 400
+
     if len(extension_ids) > 50:
-        return jsonify({'error': 'Maximum 50 extensions per bulk search'}), 400
-    
+        return jsonify({"error": "Maximum 50 extensions per bulk search"}), 400
+
     results = {}
-    
+
     for ext_id in extension_ids:
         ext_id = ext_id.strip()
         if not ext_id:
             continue
-        
+
         ext_results = []
-        
+
         # Search all requested stores for this ID
         stores_to_search = [s for s in stores if s in scrapers]
-        
+
         for store in stores_to_search:
             # Check cache first
             cached_data = db_manager.get_from_cache(ext_id, store)
-            
+
             if cached_data:
                 if cached_data.found:
                     cached_data.cached = True
                     ext_results.append(cached_data.to_dict())
+                else:
+                    # Cache shows not found - check if it was previously found (delisted)
+                    previous_cache = db_manager.get_previous_found_entry(ext_id, store)
+                    if previous_cache:
+                        result_dict = previous_cache.to_dict()
+                        result_dict["delisted"] = True
+                        result_dict["cached"] = True
+                        ext_results.append(result_dict)
+                        logger.info(f"Extension {ext_id} marked as delisted in {store}")
             else:
                 # Scrape if not in cache
                 try:
                     scraper = scrapers[store]
-                    extension_data = scraper.scrape(ext_id)
-                    
+                    # Pass include_permissions only to Chrome scraper
+                    if store == "chrome":
+                        extension_data = scraper.scrape(
+                            ext_id, include_permissions=include_permissions
+                        )
+                    else:
+                        extension_data = scraper.scrape(ext_id)
+
                     if extension_data:
+                        # Check for delisted BEFORE saving (save overwrites old entry)
+                        previous_cache = None
+                        if not extension_data.found:
+                            previous_cache = db_manager.get_previous_found_entry(ext_id, store)
+
                         db_manager.save_to_cache(extension_data)
                         if extension_data.found:
                             ext_results.append(extension_data.to_dict())
+                        elif previous_cache:
+                            # Extension was previously found but now gone = delisted
+                            result_dict = previous_cache.to_dict()
+                            result_dict["delisted"] = True
+                            result_dict["cached"] = True
+                            ext_results.append(result_dict)
+                            logger.info(f"Extension {ext_id} marked as delisted in {store}")
                 except Exception as e:
                     logger.error(f"Error in bulk search for {ext_id} in {store}: {e}")
-        
-        results[ext_id] = ext_results
-    
-    return jsonify({'results': results})
 
-@app.route('/api/stats', methods=['GET'])
+        results[ext_id] = ext_results
+
+    return jsonify({"results": results})
+
+
+@app.route("/api/search-by-name", methods=["POST"])
+@limiter.limit("20 per minute")
+@require_api_key
+def search_by_name():
+    """Search for extensions by name across stores"""
+    data = request.get_json()
+
+    if not data:
+        return jsonify({"error": "Invalid JSON data"}), 400
+
+    name = data.get("name", "").strip()
+    exclude_stores = data.get("exclude_stores", [])
+    limit = min(int(data.get("limit", 5)), 10)
+
+    if not name:
+        return jsonify({"error": "Extension name is required"}), 400
+
+    results = {}
+    search_urls = {}
+
+    for store_name, scraper in scrapers.items():
+        if store_name in exclude_stores:
+            continue
+
+        # Get search results from stores that support it
+        matches = scraper.search_by_name(name, limit=limit)
+        results[store_name] = [m.to_dict() for m in matches]
+
+        # Always provide a manual search URL
+        if store_name == "chrome":
+            search_urls[
+                store_name
+            ] = f"https://chromewebstore.google.com/search/{requests_quote(name)}"
+        elif store_name == "firefox":
+            search_urls[
+                store_name
+            ] = f"https://addons.mozilla.org/en-US/firefox/search/?q={requests_quote(name)}"
+        elif store_name == "edge":
+            search_urls[
+                store_name
+            ] = f"https://microsoftedge.microsoft.com/addons/search/{requests_quote(name)}"
+
+    return jsonify(
+        {
+            "name": name,
+            "results": results,
+            "search_urls": search_urls,
+        }
+    )
+
+
+@app.route("/api/stats", methods=["GET"])
 @require_api_key
 def get_statistics():
     """Get cache and usage statistics"""
@@ -222,48 +334,43 @@ def get_statistics():
         return jsonify(stats)
     except Exception as e:
         logger.error(f"Error getting statistics: {e}")
-        return jsonify({'error': 'Failed to retrieve statistics'}), 500
+        return jsonify({"error": "Failed to retrieve statistics"}), 500
 
-@app.route('/api/cleanup', methods=['POST'])
+
+@app.route("/api/cleanup", methods=["POST"])
 @limiter.limit("1 per hour")
 @require_api_key
 def cleanup_cache():
     """Clean up old cache entries"""
     data = request.get_json() or {}
-    days = data.get('days', config.DATABASE_CACHE_EXPIRY_DAYS * 2)
-    
+    days = data.get("days", config.DATABASE_CACHE_EXPIRY_DAYS * 2)
+
     try:
         deleted = db_manager.cleanup_old_cache(days)
-        return jsonify({
-            'message': f'Cleaned up {deleted} old cache entries',
-            'deleted': deleted
-        })
+        return jsonify({"message": f"Cleaned up {deleted} old cache entries", "deleted": deleted})
     except Exception as e:
         logger.error(f"Error cleaning cache: {e}")
-        return jsonify({'error': 'Failed to clean cache'}), 500
+        return jsonify({"error": "Failed to clean cache"}), 500
+
 
 @app.errorhandler(404)
 def not_found(error):
     """Handle 404 errors"""
-    return jsonify({'error': 'Endpoint not found'}), 404
+    return jsonify({"error": "Endpoint not found"}), 404
+
 
 @app.errorhandler(429)
 def rate_limit_exceeded(error):
     """Handle rate limit errors"""
-    return jsonify({
-        'error': 'Rate limit exceeded',
-        'message': str(error)
-    }), 429
+    return jsonify({"error": "Rate limit exceeded", "message": str(error)}), 429
+
 
 @app.errorhandler(500)
 def internal_error(error):
     """Handle 500 errors"""
     logger.error(f"Internal server error: {error}")
-    return jsonify({'error': 'Internal server error'}), 500
+    return jsonify({"error": "Internal server error"}), 500
 
-if __name__ == '__main__':
-    app.run(
-        host='0.0.0.0',
-        port=5000,
-        debug=config.DEBUG
-    )
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=config.DEBUG)

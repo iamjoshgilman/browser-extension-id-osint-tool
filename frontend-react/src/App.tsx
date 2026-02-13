@@ -13,21 +13,27 @@ export default function App() {
   const [lastStores, setLastStores] = useState<string[]>([])
   const [mode, setMode] = useState<'single' | 'bulk' | null>(null)
 
-  const handleSingleSearch = useCallback((extensionId: string, stores: string[]) => {
-    setMode('single')
-    setLastQuery(extensionId)
-    setLastStores(stores)
-    bulk.clearResults()
-    single.search(extensionId, stores)
-  }, [single, bulk])
+  const handleSingleSearch = useCallback(
+    (extensionId: string, stores: string[], includePermissions: boolean) => {
+      setMode('single')
+      setLastQuery(extensionId)
+      setLastStores(stores)
+      bulk.clearResults()
+      single.search(extensionId, stores, includePermissions)
+    },
+    [single, bulk]
+  )
 
-  const handleBulkSearch = useCallback((extensionIds: string[], stores: string[]) => {
-    setMode('bulk')
-    setLastQuery(extensionIds.join(', '))
-    setLastStores(stores)
-    single.clearResults()
-    bulk.search(extensionIds, stores)
-  }, [single, bulk])
+  const handleBulkSearch = useCallback(
+    (extensionIds: string[], stores: string[], includePermissions: boolean) => {
+      setMode('bulk')
+      setLastQuery(extensionIds.join(', '))
+      setLastStores(stores)
+      single.clearResults()
+      bulk.search(extensionIds, stores, includePermissions)
+    },
+    [single, bulk]
+  )
 
   const loading = single.loading || bulk.loading
   const results = mode === 'bulk' ? bulk.results : single.results

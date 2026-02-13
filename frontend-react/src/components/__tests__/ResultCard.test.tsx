@@ -66,4 +66,26 @@ describe('ResultCard', () => {
     render(<ResultCard extension={{ ...firefoxExtension, cached: true }} />)
     expect(screen.getByText('Cached')).toBeInTheDocument()
   })
+
+  it('shows "Find in other stores" button', () => {
+    render(<ResultCard extension={firefoxExtension} />)
+    expect(screen.getByText('Find in other stores')).toBeInTheDocument()
+  })
+
+  it('shows delisted banner when extension is delisted', () => {
+    const delistedExtension = {
+      ...firefoxExtension,
+      delisted: true,
+      scraped_at: '2024-01-15T10:30:00Z',
+    }
+    render(<ResultCard extension={delistedExtension} />)
+
+    expect(screen.getByText(/removed or delisted/i)).toBeInTheDocument()
+    expect(screen.getByText(/January 15, 2024/)).toBeInTheDocument()
+  })
+
+  it('does not show delisted banner when extension is not delisted', () => {
+    render(<ResultCard extension={firefoxExtension} />)
+    expect(screen.queryByText(/removed or delisted/i)).not.toBeInTheDocument()
+  })
 })

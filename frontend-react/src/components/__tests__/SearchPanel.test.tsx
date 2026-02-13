@@ -41,7 +41,8 @@ describe('SearchPanel', () => {
     fireEvent.click(screen.getByText('Search Extension'))
     expect(defaultProps.onSingleSearch).toHaveBeenCalledWith(
       'testid123',
-      ['chrome', 'firefox', 'edge']
+      ['chrome', 'firefox', 'edge'],
+      false
     )
   })
 })

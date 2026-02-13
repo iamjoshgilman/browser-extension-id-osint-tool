@@ -42,9 +42,10 @@ def test_search_invalid_request(client):
     """Test search with invalid request"""
     response = client.post('/api/search', json={})
     assert response.status_code == 400
-    
+
+    # Sending invalid data without proper Content-Type returns 415
     response = client.post('/api/search', data="invalid")
-    assert response.status_code == 400
+    assert response.status_code == 415
 
 def test_bulk_search(client):
     """Test bulk search endpoint"""
@@ -82,24 +83,25 @@ def test_404_error(client):
     data = json.loads(response.data)
     assert 'error' in data
 
-def test_api_key_required():
+def test_api_key_required(monkeypatch):
     """Test API key authentication when enabled"""
+    # Set environment variable since decorator checks os.environ directly
+    monkeypatch.setenv('API_KEY_REQUIRED', 'true')
     app.config['TESTING'] = True
-    app.config['API_KEY_REQUIRED'] = True
     app.config['API_KEY'] = 'test-key-123'
-    
+
     with app.test_client() as client:
         # Without API key
         response = client.post('/api/search',
                               json={'extension_id': 'test', 'stores': ['chrome']})
         assert response.status_code == 401
-        
+
         # With wrong API key
         response = client.post('/api/search',
                               headers={'X-API-Key': 'wrong-key'},
                               json={'extension_id': 'test', 'stores': ['chrome']})
         assert response.status_code == 401
-        
+
         # With correct API key
         response = client.post('/api/search',
                               headers={'X-API-Key': 'test-key-123'},

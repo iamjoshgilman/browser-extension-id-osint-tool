@@ -1,0 +1,27 @@
+.banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  background-color: var(--ctp-red);
+  color: var(--ctp-crust);
+  border-radius: 8px;
+  margin-bottom: 16px;
+  border: 1px solid var(--ctp-maroon);
+}
+
+.icon {
+  font-size: 1.2em;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.message {
+  margin: 0;
+  line-height: 1.5;
+  font-size: 0.95em;
+}
+
+.message strong {
+  font-weight: 600;
+}

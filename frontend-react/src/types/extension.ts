@@ -18,4 +18,5 @@ export interface ExtensionData {
   found: boolean
   cached: boolean
   scraped_at: string | null
+  delisted?: boolean
 }
