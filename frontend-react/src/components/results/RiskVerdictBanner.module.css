@@ -1,0 +1,94 @@
+.banner {
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  border-left: 4px solid;
+}
+
+.banner.critical {
+  background-color: var(--risk-critical-bg);
+  border-left-color: var(--risk-critical-text);
+}
+
+.banner.high {
+  background-color: var(--risk-high-bg);
+  border-left-color: var(--risk-high-text);
+}
+
+.banner.medium {
+  background-color: var(--risk-medium-bg);
+  border-left-color: var(--risk-medium-text);
+}
+
+.banner.low {
+  background-color: var(--risk-low-bg);
+  border-left-color: var(--risk-low-text);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.icon {
+  font-size: 1.2em;
+}
+
+.message {
+  font-weight: 700;
+  font-size: 0.95em;
+  letter-spacing: 0.5px;
+}
+
+.critical .message {
+  color: var(--risk-critical-text);
+}
+
+.high .message {
+  color: var(--risk-high-text);
+}
+
+.medium .message {
+  color: var(--risk-medium-text);
+}
+
+.low .message {
+  color: var(--risk-low-text);
+}
+
+.signals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.signal {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 10px;
+  font-size: 0.75em;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.signal_critical {
+  background-color: var(--risk-critical-border);
+  color: var(--risk-critical-text);
+}
+
+.signal_high {
+  background-color: var(--risk-high-border);
+  color: var(--risk-high-text);
+}
+
+.signal_medium {
+  background-color: var(--risk-medium-border);
+  color: var(--risk-medium-text);
+}
+
+.signal_low {
+  background-color: var(--risk-low-border);
+  color: var(--risk-low-text);
+}
