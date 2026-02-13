@@ -1,6 +1,6 @@
 # Makefile for Browser Extension OSINT Tool
 
-.PHONY: help setup install test run dev prod clean docker-build docker-up docker-down lint format
+.PHONY: help setup install test run dev prod clean docker-build docker-up docker-down lint format frontend-install frontend-dev frontend-build frontend-test
 
 # Default target
 help:
@@ -17,6 +17,10 @@ help:
 	@echo "  make docker-down - Stop Docker containers"
 	@echo "  make lint        - Run code linting"
 	@echo "  make format      - Format code"
+	@echo "  make frontend-install - Install frontend dependencies"
+	@echo "  make frontend-dev    - Start frontend dev server (port 3000)"
+	@echo "  make frontend-build  - Build frontend for production"
+	@echo "  make frontend-test   - Run frontend tests"
 
 # Setup project
 setup:
@@ -95,3 +99,20 @@ db-clean:
 test-scrapers:
 	@echo "Testing scrapers..."
 	@python scripts/test_scrapers.py
+
+# Frontend (React) commands
+frontend-install:
+	@echo "Installing frontend dependencies..."
+	@cd frontend-react && npm install
+
+frontend-dev:
+	@echo "Starting frontend dev server on port 3000..."
+	@cd frontend-react && npm run dev
+
+frontend-build:
+	@echo "Building frontend for production..."
+	@cd frontend-react && npm run build
+
+frontend-test:
+	@echo "Running frontend tests..."
+	@cd frontend-react && npm test

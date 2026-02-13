@@ -1,0 +1,29 @@
+.meta {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  font-size: 0.95em;
+  color: var(--ctp-subtext1);
+}
+
+.meta span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.meta strong {
+  color: var(--ctp-text);
+}
+
+.publisher {
+  color: var(--ctp-mauve);
+}
+
+@media (max-width: 768px) {
+  .meta {
+    flex-direction: column;
+    gap: 8px;
+  }
+}

@@ -1,0 +1,25 @@
+.container {
+  background-color: var(--ctp-mantle);
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid var(--ctp-surface0);
+}
+
+.header h2 {
+  color: var(--ctp-text);
+  font-size: 1.3em;
+}
+
+.count {
+  color: var(--ctp-subtext1);
+  font-size: 0.95em;
+}

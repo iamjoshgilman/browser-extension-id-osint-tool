@@ -1,0 +1,32 @@
+.section {
+  background-color: var(--ctp-mantle);
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  margin-bottom: 30px;
+}
+
+.searchBtn {
+  padding: 12px 30px;
+  background-color: var(--ctp-lavender);
+  color: var(--ctp-crust);
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: block;
+  margin: 0 auto;
+}
+
+.searchBtn:hover:not(:disabled) {
+  background-color: var(--ctp-mauve);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.searchBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

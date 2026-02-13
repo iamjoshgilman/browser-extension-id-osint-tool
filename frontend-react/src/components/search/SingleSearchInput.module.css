@@ -1,0 +1,41 @@
+.inputGroup {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.input {
+  flex: 1;
+  padding: 12px 16px;
+  background-color: var(--ctp-surface0);
+  color: var(--ctp-text);
+  border: 2px solid var(--ctp-surface1);
+  border-radius: 8px;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  min-width: 300px;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--ctp-lavender);
+  background-color: var(--ctp-surface1);
+}
+
+.input:disabled {
+  opacity: 0.6;
+}
+
+.help {
+  color: var(--ctp-overlay0);
+  font-size: 0.85em;
+  margin-top: -10px;
+  margin-bottom: 15px;
+  opacity: 0.8;
+}
+
+@media (max-width: 768px) {
+  .input {
+    min-width: 100%;
+  }
+}

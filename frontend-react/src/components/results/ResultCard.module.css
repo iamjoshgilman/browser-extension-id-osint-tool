@@ -1,0 +1,77 @@
+.card {
+  background-color: var(--ctp-surface0);
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 15px;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.card:hover {
+  background-color: var(--ctp-surface1);
+  border-color: var(--ctp-lavender);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 15px;
+}
+
+.nameRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.name {
+  font-size: 1.3em;
+  font-weight: 600;
+  color: var(--ctp-lavender);
+}
+
+.badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.id {
+  font-family: 'Courier New', monospace;
+  font-size: 0.9em;
+  color: var(--ctp-subtext0);
+}
+
+.description {
+  color: var(--ctp-subtext0);
+  line-height: 1.5;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--ctp-surface1);
+}
+
+.storeLink {
+  display: inline-block;
+  margin-top: 10px;
+  color: var(--ctp-sapphire);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.storeLink:hover {
+  color: var(--ctp-sky);
+  text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    gap: 10px;
+  }
+}

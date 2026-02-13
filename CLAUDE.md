@@ -9,17 +9,26 @@ Browser Extension OSINT Tool — a web application for investigating browser ext
 ## Commands
 
 ```bash
-# Install dependencies
+# Install backend dependencies
 make install                  # pip install -r backend/requirements.txt
 
-# Run development server (Flask on port 5000)
+# Install frontend dependencies
+make frontend-install         # cd frontend-react && npm install
+
+# Run backend dev server (Flask on port 5000)
 make dev                      # FLASK_ENV=development, runs backend/app.py
 
-# Run production server
-make prod                     # gunicorn -w 4 -b 0.0.0.0:5000 wsgi:app
+# Run frontend dev server (Vite on port 3000, proxies /api to Flask)
+make frontend-dev             # cd frontend-react && npm run dev
 
-# Run all tests
+# Build frontend for production
+make frontend-build           # cd frontend-react && npm run build
+
+# Run backend tests
 make test                     # cd backend && python -m pytest ../tests -v
+
+# Run frontend tests
+make frontend-test            # cd frontend-react && npm test
 
 # Run a single test file
 cd backend && python -m pytest ../tests/test_api.py -v
@@ -51,7 +60,19 @@ make docker-build && make docker-up
 - `firefox.py` — Uses official Firefox Add-ons API v5 (JSON), handles localized fields
 - `edge.py` — Uses Microsoft Edge API (`getproductdetailsbycrxid`); **known issue: currently returns "unknown" for some fields**
 
-**Frontend** (`frontend/`): Vanilla JS/HTML/CSS, no build step. Catppuccin Frapp theme. `js/api.js` wraps API calls, `js/app.js` handles UI logic.
+**Frontend** (React 19 / TypeScript / Vite): `frontend-react/`
+- `src/api/` — API client (`client.ts`) and endpoint functions (`endpoints.ts`)
+- `src/components/` — React components organized by domain:
+  - `layout/` — AppShell, Header, Footer
+  - `search/` — SearchPanel, SearchModeToggle, SingleSearchInput, BulkSearchInput, StoreSelector, FileUploadButton
+  - `results/` — ResultsContainer, ResultCard, ResultMeta, PermissionsList, PermissionBadge, StoreBadge, CachedBadge, ExportToolbar
+  - `common/` — Badge, Spinner, ErrorBanner
+- `src/hooks/` — Custom hooks: useSearch, useBulkSearch, useExport, useFileImport, useApiHealth
+- `src/utils/` — Permission risk scoring (`permissions.ts`), CSV/JSON export (`export.ts`), file parsing (`fileParser.ts`), formatters, validation
+- `src/types/` — TypeScript types mirroring backend models
+- `src/theme/` — Catppuccin Frappe color tokens and global CSS
+
+**Legacy Frontend** (`frontend-legacy/`): Original vanilla JS/HTML/CSS frontend, kept for rollback.
 
 **Infrastructure**: Nginx reverse proxy (`nginx/`), Docker Compose (`docker/`) with backend + frontend + optional Redis for rate limiting.
 
@@ -65,7 +86,10 @@ make docker-build && make docker-up
 ## Key Conventions
 
 - Line length: 100 chars (both flake8 and black)
-- Tests use pytest fixtures: `test_client` (Flask test client), `temp_db` (temp SQLite)
-- Tests run from `backend/` directory with test files in `../tests/`
+- Backend tests use pytest fixtures: `test_client` (Flask test client), `temp_db` (temp SQLite)
+- Backend tests run from `backend/` directory with test files in `../tests/`
+- Frontend tests use Vitest + React Testing Library
 - Extension ID formats: Chrome = 32 lowercase letters, Firefox = flexible (UUID/email/string), Edge = 32 alphanumeric
 - Config reads from environment variables with sensible defaults; see `.env.example`
+- Permission risk levels: Critical (red), High (peach), Medium (yellow), Low (green) — Catppuccin Frappe palette
+- CSS uses CSS Modules (`.module.css`) per component

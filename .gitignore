@@ -67,10 +67,12 @@ htmlcov/
 docs/_build/
 site/
 
-# Node (if using any JS tools)
+# Node / Frontend
 node_modules/
 npm-debug.log
 yarn-error.log
+frontend-react/dist/
+.vite/
 
 # Backup files
 *.bak
