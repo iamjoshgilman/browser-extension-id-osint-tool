@@ -30,8 +30,9 @@ export function BlocklistBanner({ matches }: BlocklistBannerProps) {
               target="_blank"
               rel="noopener noreferrer"
               className={styles.sourceLink}
+              title={`Source: ${match.source}`}
             >
-              {match.source}
+              Threat Intel &rarr;
             </a>
           ))}
         </div>

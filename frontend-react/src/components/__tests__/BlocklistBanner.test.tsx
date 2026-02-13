@@ -25,16 +25,17 @@ describe('BlocklistBanner', () => {
     expect(screen.getByText(/blocklists/)).toBeInTheDocument()
   })
 
-  it('renders source links with correct attributes', () => {
+  it('renders threat intel links with correct attributes', () => {
     const matches = [
       { source: 'TestList', url: 'https://example.com/blocklist' },
     ]
     render(<BlocklistBanner matches={matches} />)
 
-    const link = screen.getByRole('link', { name: /testlist/i })
+    const link = screen.getByRole('link', { name: /threat intel/i })
     expect(link).toHaveAttribute('href', 'https://example.com/blocklist')
     expect(link).toHaveAttribute('target', '_blank')
     expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+    expect(link).toHaveAttribute('title', 'Source: TestList')
   })
 
   it('displays warning text', () => {
