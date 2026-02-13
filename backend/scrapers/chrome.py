@@ -17,9 +17,8 @@ class ChromeStoreScraper(ExtensionScraper):
     def __init__(self):
         super().__init__()
         self.store_name = "chrome"
-        # Update user agent to a more recent one
         self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
             'Accept-Language': 'en-US,en;q=0.9',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
         })
@@ -64,8 +63,7 @@ class ChromeStoreScraper(ExtensionScraper):
                 store_url=url
             )
             
-            # Try to extract from structured data first
-            found_structured_data = False
+            # Try to extract from structured data (ld+json) if available
             scripts = soup.find_all('script', type='application/ld+json')
             for script in scripts:
                 try:
@@ -82,125 +80,110 @@ class ChromeStoreScraper(ExtensionScraper):
                             rating_data = json_data['aggregateRating']
                             data.rating = str(rating_data.get('ratingValue', ''))
                             data.rating_count = str(rating_data.get('ratingCount', ''))
-                        found_structured_data = True
                         logger.info(f"Extracted data from structured data: {data.name}")
                         break
                 except Exception as e:
                     logger.debug(f"Failed to parse structured data: {e}")
             
-            # If no structured data or no name found, try HTML parsing
+            # Extract name from h1 if not found via structured data
             if not data.name:
-                # Extract name - try multiple selectors
-                name_selectors = [
-                    'h1[class*="webstore-test-wall-tile-name"]',
-                    'h1.e-f-w',
-                    'div[itemprop="name"]',
-                    'h1'
-                ]
-                for selector in name_selectors:
-                    elem = soup.select_one(selector)
-                    if elem and elem.get_text(strip=True):
-                        data.name = elem.get_text(strip=True)
-                        break
+                h1 = soup.find('h1')
+                if h1:
+                    data.name = h1.get_text(strip=True)
             
-            # Check if this is actually an extension page or a 404/error page
-            # Chrome Web Store shows a page even for non-existent extensions but with generic content
-            if not data.name or data.name in ["Unknown Extension", "Chrome Web Store", ""]:
-                # Additional check: look for specific error indicators
-                error_indicators = [
-                    "Item not found",
-                    "This item may have been removed",
-                    "404",
-                    "Not found"
-                ]
-                
+            # Check if this is actually an extension page
+            if not data.name or data.name in ["Chrome Web Store", ""]:
+                error_indicators = ["Item not found", "This item may have been removed", "404", "Not found"]
                 page_text = response.text.lower()
                 for indicator in error_indicators:
                     if indicator.lower() in page_text:
-                        logger.info(f"Chrome extension not found (error indicator): {normalized_id}")
                         return self.create_not_found_result(normalized_id)
-                
-                # If we still don't have a valid name, it's likely not found
-                if not data.name or data.name == "Unknown Extension":
-                    logger.info(f"Chrome extension not found (no valid data): {normalized_id}")
+                if not data.name:
                     return self.create_not_found_result(normalized_id)
             
-            # Extract user count from text
-            users_patterns = [
-                r'([\d,]+\+?\s*users?)',
-                r'([\d,]+)\s*weekly active users',
-                r'Used by ([\d,]+\+?) people'
-            ]
-            for pattern in users_patterns:
-                users_match = re.search(pattern, response.text, re.IGNORECASE)
-                if users_match:
-                    data.user_count = users_match.group(1)
-                    break
+            # Extract description from meta tags if not from structured data
+            if not data.description:
+                og_desc = soup.find('meta', property='og:description')
+                if og_desc and og_desc.get('content'):
+                    desc = og_desc['content']
+                    # Strip store suffix
+                    if desc.endswith(' - Chrome Web Store'):
+                        desc = desc[:-len(' - Chrome Web Store')]
+                    data.description = desc[:500]
+                if not data.description:
+                    meta_desc = soup.find('meta', attrs={'name': 'description'})
+                    if meta_desc and meta_desc.get('content'):
+                        data.description = meta_desc['content'][:500]
             
-            # Extract publisher - look for "offered by" text
-            offered_by_match = re.search(r'offered by[:\s]+([^<\n]+)', response.text, re.IGNORECASE)
-            if offered_by_match:
-                data.publisher = offered_by_match.group(1).strip()
+            # Extract icon from og:image
+            if not data.icon_url:
+                og_img = soup.find('meta', property='og:image')
+                if og_img and og_img.get('content'):
+                    data.icon_url = og_img['content']
             
-            # Extract version from various possible locations
-            version_patterns = [
-                r'"version"\s*:\s*"([^"]+)"',
-                r'Version:\s*([^\s<]+)',
-                r'<span[^>]*class="[^"]*version[^"]*"[^>]*>([^<]+)</span>'
-            ]
-            for pattern in version_patterns:
-                version_match = re.search(pattern, response.text)
+            # Extract publisher from "Offered by" HTML structure
+            # Structure: <div class="QDHp8e">Offered by</div><div>Publisher Name</div>
+            if not data.publisher:
+                offered_divs = soup.find_all('div', string=re.compile(r'Offered by', re.IGNORECASE))
+                for offered_div in offered_divs:
+                    next_div = offered_div.find_next_sibling('div')
+                    if next_div:
+                        data.publisher = next_div.get_text(strip=True)
+                        break
+                # Fallback: regex on raw text
+                if not data.publisher:
+                    offered_match = re.search(r'Offered by</div><div[^>]*>([^<]+)</div>', response.text, re.IGNORECASE)
+                    if offered_match:
+                        data.publisher = offered_match.group(1).strip()
+            
+            # Extract user count
+            if not data.user_count:
+                users_patterns = [
+                    r'([\d,]+\+?\s*users?)',
+                    r'([\d,]+)\s*weekly active users',
+                ]
+                for pattern in users_patterns:
+                    users_match = re.search(pattern, response.text, re.IGNORECASE)
+                    if users_match:
+                        data.user_count = users_match.group(1)
+                        break
+            
+            # Extract version
+            if not data.version:
+                version_match = re.search(r'"version"\s*:\s*"([0-9][0-9.]+)"', response.text)
                 if version_match:
                     data.version = version_match.group(1).strip()
-                    break
             
             # Extract rating
-            rating_patterns = [
-                r'"ratingValue"\s*:\s*"?([0-9.]+)"?',
-                r'([0-9.]+)\s*out of\s*5',
-                r'Average rating[:\s]*([0-9.]+)'
-            ]
-            for pattern in rating_patterns:
-                rating_match = re.search(pattern, response.text)
-                if rating_match:
-                    data.rating = rating_match.group(1)
-                    break
-            
-            # Extract description if not already found
-            if not data.description:
-                desc_selectors = [
-                    'div[itemprop="description"]',
-                    'div.C-b-p-j-D-K',
-                    'section[class*="description"]',
-                    'div[class*="overview"]'
+            if not data.rating:
+                rating_patterns = [
+                    r'"ratingValue"\s*:\s*"?([0-9.]+)"?',
+                    r'([0-9.]+)\s*out of\s*5',
                 ]
-                for selector in desc_selectors:
-                    elem = soup.select_one(selector)
-                    if elem:
-                        desc_text = elem.get_text(strip=True)
-                        if desc_text and len(desc_text) > 10:
-                            data.description = desc_text[:500]
-                            break
+                for pattern in rating_patterns:
+                    rating_match = re.search(pattern, response.text)
+                    if rating_match:
+                        data.rating = rating_match.group(1)
+                        break
             
             # Extract last updated date
-            updated_patterns = [
-                r'"datePublished"\s*:\s*"([^"]+)"',
-                r'Updated[:\s]*([^<\n]+)',
-                r'Last updated[:\s]*([^<\n]+)'
-            ]
-            for pattern in updated_patterns:
-                updated_match = re.search(pattern, response.text)
-                if updated_match:
-                    data.last_updated = updated_match.group(1).strip()
-                    break
+            if not data.last_updated:
+                updated_patterns = [
+                    r'"datePublished"\s*:\s*"([^"]+)"',
+                    r'Updated[:\s]*([^<\n]+)',
+                ]
+                for pattern in updated_patterns:
+                    updated_match = re.search(pattern, response.text)
+                    if updated_match:
+                        data.last_updated = updated_match.group(1).strip()
+                        break
             
-            # Final validation - ensure we have meaningful data
-            if data.name and data.name not in ["Unknown Extension", "Chrome Web Store", ""]:
+            # Final validation
+            if data.name and data.name not in ["Chrome Web Store", ""]:
                 data.found = True
-                logger.info(f"Successfully scraped Chrome extension: {data.name} (users: {data.user_count}, version: {data.version})")
+                logger.info(f"Successfully scraped Chrome extension: {data.name} (publisher: {data.publisher}, users: {data.user_count}, version: {data.version})")
                 return data
             else:
-                logger.info(f"Chrome extension not found (insufficient data): {normalized_id}")
                 return self.create_not_found_result(normalized_id)
             
         except Exception as e:

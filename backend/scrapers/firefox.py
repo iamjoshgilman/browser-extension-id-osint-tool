@@ -23,7 +23,7 @@ class FirefoxAddonsScraper(ExtensionScraper):
         - Email-like: something@somewhere
         - Simple string ID
         """
-        return len(extension_id) > 1  # Very permissive for Firefox
+        return len(extension_id) > 1
     
     def normalize_id(self, extension_id: str) -> str:
         """Normalize extension ID"""
@@ -33,6 +33,24 @@ class FirefoxAddonsScraper(ExtensionScraper):
         """Get the Firefox Add-ons URL for an extension"""
         return f"https://addons.mozilla.org/en-US/firefox/addon/{extension_id}/"
     
+    def _extract_localized_string(self, value):
+        """Extract a string from a potentially localized API field.
+        The Firefox API may return either a plain string or a dict of locale keys.
+        """
+        if isinstance(value, str):
+            return value
+        if isinstance(value, dict):
+            # Try common fields for nested URL objects
+            if 'url' in value:
+                return self._extract_localized_string(value['url'])
+            # Try en-US first, then any non-empty value
+            if 'en-US' in value and value['en-US']:
+                return value['en-US']
+            for v in value.values():
+                if v and isinstance(v, str):
+                    return v
+        return ''
+    
     def scrape(self, extension_id: str) -> Optional[ExtensionData]:
         """Scrape extension data from Firefox Add-ons"""
         if not self.validate_id(extension_id):
@@ -41,7 +59,6 @@ class FirefoxAddonsScraper(ExtensionScraper):
         
         normalized_id = self.normalize_id(extension_id)
         
-        # Try API first
         api_url = f"https://addons.mozilla.org/api/v5/addons/addon/{normalized_id}/"
         
         try:
@@ -55,21 +72,35 @@ class FirefoxAddonsScraper(ExtensionScraper):
             if response.status_code == 200:
                 addon_data = response.json()
                 
-                # Extract data from API response
+                # Extract homepage URL properly (may be localized dict)
+                homepage_raw = addon_data.get('homepage', '')
+                homepage_url = self._extract_localized_string(homepage_raw)
+                
                 data = ExtensionData(
                     extension_id=normalized_id,
-                    name=addon_data.get('name', {}).get('en-US', 'Unknown'),
+                    name=self._extract_localized_string(addon_data.get('name', 'Unknown')),
                     publisher=addon_data.get('authors', [{}])[0].get('name', ''),
-                    description=addon_data.get('summary', {}).get('en-US', '')[:500],
+                    description=self._extract_localized_string(addon_data.get('summary', ''))[:500],
                     version=addon_data.get('current_version', {}).get('version', ''),
                     user_count=f"{addon_data.get('average_daily_users', 0):,} users",
                     rating=str(addon_data.get('ratings', {}).get('average', '')),
                     rating_count=str(addon_data.get('ratings', {}).get('count', '')),
                     store_source=self.store_name,
                     store_url=addon_data.get('url', self.get_extension_url(normalized_id)),
-                    homepage_url=addon_data.get('homepage', ''),
+                    homepage_url=homepage_url,
                     found=True
                 )
+                
+                # Extract icon URL
+                icons = addon_data.get('icons', {})
+                if icons:
+                    # Prefer largest icon
+                    for size in ['128', '64', '32']:
+                        if size in icons:
+                            data.icon_url = icons[size]
+                            break
+                    if not data.icon_url and icons:
+                        data.icon_url = list(icons.values())[0]
                 
                 # Extract category
                 if addon_data.get('categories'):
@@ -85,6 +116,13 @@ class FirefoxAddonsScraper(ExtensionScraper):
                 # Extract last updated
                 if current_version.get('created'):
                     data.last_updated = current_version['created']
+                
+                # Extract privacy policy
+                privacy_url = addon_data.get('contributions_url', '')
+                if not privacy_url:
+                    privacy_url = addon_data.get('privacy_policy_url', '')
+                if privacy_url:
+                    data.privacy_policy_url = self._extract_localized_string(privacy_url)
                 
                 logger.info(f"Successfully scraped Firefox addon via API: {data.name}")
                 return data
@@ -122,9 +160,7 @@ class FirefoxAddonsScraper(ExtensionScraper):
             if not name_elem:
                 name_elem = soup.select_one('h1')
             if name_elem:
-                # Remove author from title if present
                 title_text = name_elem.get_text(strip=True)
-                # Firefox titles often include "by Author" - remove that
                 if ' by ' in title_text:
                     data.name = title_text.split(' by ')[0].strip()
                 else:
@@ -174,6 +210,9 @@ class FirefoxAddonsScraper(ExtensionScraper):
                 updated_match = re.search(r'Last updated:\s+(.+)', updated_text)
                 if updated_match:
                     data.last_updated = updated_match.group(1)
+            
+            if data.name and data.name != 'Unknown Addon':
+                data.found = True
             
             logger.info(f"Successfully scraped Firefox addon via web: {data.name}")
             return data
